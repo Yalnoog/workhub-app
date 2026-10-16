@@ -91,5 +91,13 @@
     await ln.schedule({ notifications: [{ id: 1999999999, title: "테스트 알림", body: "이 알림이 보이면 마감일 알림이 정상 동작합니다.", schedule: { at: new Date(Date.now() + 10000), allowWhileIdle: true }, channelId: "due" }] });
   }
 
-  window.Notify = { isNative: isNative, init: init, sync: sync, status: status, requestAll: requestAll, test: test, _plan: plan, _fireAt: fireAt };
+  // 즉시 알림 하나(저장공간 경고 등). 같은 id는 덮어쓴다.
+  async function alertNow(id, title, body) {
+    if (!isNative()) return;
+    var ln = LN();
+    var perm = await ln.checkPermissions(); if (perm.display !== "granted") return;
+    await ln.schedule({ notifications: [{ id: id, title: title, body: body, schedule: { at: new Date(Date.now() + 2000), allowWhileIdle: true }, channelId: "due" }] });
+  }
+
+  window.Notify = { alertNow: alertNow, isNative: isNative, init: init, sync: sync, status: status, requestAll: requestAll, test: test, _plan: plan, _fireAt: fireAt };
 })();

@@ -129,6 +129,23 @@
     return (j.files && j.files[0]) || null;
   }
   async function download(id, tok) { return (await drive(API + "/files/" + id + "?alt=media", {}, tok)).json(); }
+  // 드라이브 저장공간: 계정 전체(about) + 이 앱이 쓰는 용량(앱 전용 폴더의 파일 크기 합).
+  // 전체 사용량을 읽는 권한이 현재 권한(drive.appdata)으로 안 되면 totalErr에 사유를 남기고 앱 사용량만 돌려준다.
+  async function usage(tok) {
+    var q = { t: Date.now(), limit: 0, usage: 0, app: 0, totalErr: "" };
+    var r = await drive(API + "/files?spaces=appDataFolder&fields=files(size)&pageSize=100", {}, tok);
+    ((await r.json()).files || []).forEach(function (f) { q.app += Number(f.size) || 0; });
+    try {
+      var a = await (await drive(API + "/about?fields=storageQuota(limit,usage)", {}, tok)).json(), sq = a.storageQuota || {};
+      q.limit = Number(sq.limit) || 0; q.usage = Number(sq.usage) || 0;
+      if (!q.usage) q.totalErr = "계정 전체 사용량 정보가 비어 있습니다.";
+    } catch (e) {
+      var why = (e && e.code === "DRIVE_API" || e && e.code === "AUTH") ? "현재 권한으로는 읽을 수 없습니다" : ((e && e.message) || "읽지 못했습니다");
+      q.totalErr = why + (e && e.message && why !== e.message ? " - " + e.message : "");
+    }
+    return q;
+  }
+
   async function upload(id, snap, tok) {
     var body = JSON.stringify(snap);
     if (id) { await drive(UP + "/files/" + id + "?uploadType=media", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: body }, tok); return id; }
@@ -152,8 +169,19 @@
     if (window.Settings.get("keyWipe") && !window.Settings.get("syncKey")) await window.Settings.remove("keyWipe");
     await window.Settings.set("driveLast", Date.now());
     await window.Settings.remove("driveErr");
+    await refreshUsage(false, tok).catch(function () {});
     if (changed && applied) applied();
     return changed;
+  }
+
+  var QUOTA_GAP = 30 * 60 * 1000, usageCb = null;
+  async function refreshUsage(force, tok) {
+    var cur = window.Settings.get("driveQuota");
+    if (!force && cur && Date.now() - cur.t < QUOTA_GAP) return cur;
+    var q = await usage(tok || await token(false));
+    await window.Settings.set("driveQuota", q);
+    if (usageCb) usageCb(q);
+    return q;
   }
 
   // 동시에 여러 번 불려도 한 줄로 처리
@@ -184,5 +212,6 @@
     available: available, enabled: enabled, run: run, schedule: schedule, connect: connect, disconnect: disconnect, state: state,
     merge: merge, canon: canon, localSnapshot: localSnapshot, FILE: FILE,
     onApplied: function (fn) { applied = fn; },
+    onUsage: function (fn) { usageCb = fn; }, refreshUsage: refreshUsage,
   };
 })();

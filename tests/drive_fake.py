@@ -1,7 +1,8 @@
 import json, re
 from common import *
 
-DRIVE = {"file": None, "body": None, "calls": 0}
+GB = 1073741824
+DRIVE = {"file": None, "body": None, "calls": 0, "about": {"limit": str(15 * GB), "usage": str(int(4.2 * GB))}, "about_status": 200}
 CORS = {"access-control-allow-origin": "*", "access-control-allow-headers": "*", "access-control-allow-methods": "*"}
 
 def drive_route(r):
@@ -17,9 +18,13 @@ def drive_route(r):
             return r.fulfill(status=200, headers=CORS, content_type="application/json", body=json.dumps({"id": "f1"}))
         DRIVE["body"] = data
         return r.fulfill(status=200, headers=CORS, content_type="application/json", body=json.dumps({"id": "f1"}))
+    if "/drive/v3/about" in url:
+        if DRIVE["about_status"] != 200:
+            return r.fulfill(status=DRIVE["about_status"], headers=CORS, content_type="application/json", body=json.dumps({"error": {"message": "insufficient permissions"}}))
+        return r.fulfill(status=200, headers=CORS, content_type="application/json", body=json.dumps({"storageQuota": DRIVE["about"]}))
     if "alt=media" in url:
         return r.fulfill(status=200, headers=CORS, content_type="application/json", body=DRIVE["body"])
-    files = [{"id": DRIVE["file"], "modifiedTime": "2030-01-01T00:00:00Z"}] if DRIVE["file"] else []
+    files = [{"id": DRIVE["file"], "modifiedTime": "2030-01-01T00:00:00Z", "size": str(len((DRIVE["body"] or "").encode()))}] if DRIVE["file"] else []
     return r.fulfill(status=200, headers=CORS, content_type="application/json", body=json.dumps({"files": files}))
 
 FAKE = """() => { window.__mode = 'ok';

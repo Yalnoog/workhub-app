@@ -61,10 +61,46 @@
     document.getElementById("driveConnect").hidden = on; document.getElementById("driveNow").hidden = !on; document.getElementById("driveOff").hidden = !on;
     st.textContent = (Sync.state.running ? "동기화 중..." : on ? "연결됨" + (Settings.get("driveLast") ? " · 마지막 동기화 " + fmtAgo(Settings.get("driveLast")) : "") : "연결되지 않았습니다.")
       + (err && on ? " · 오류: " + err.msg : "");
+    renderUsage(on ? Settings.get("driveQuota") : null);
   }
+  // ---- 드라이브 저장공간 표시 + 80% 경고 ----
+  function fmtBytes(n) { return n >= 1073741824 ? (n / 1073741824).toFixed(1) + "GB" : n >= 1048576 ? (n / 1048576).toFixed(1) + "MB" : n >= 1024 ? Math.round(n / 1024) + "KB" : n + "B"; }
+  function fmtPct(x) { return x >= 10 ? Math.round(x) + "%" : x >= 1 ? x.toFixed(1) + "%" : x >= 0.01 ? x.toFixed(2) + "%" : "0.01% 미만"; }
+  function renderUsage(q) {
+    var box = document.getElementById("driveUsage");
+    if (!q || !(window.Sync && Sync.enabled())) { box.hidden = true; return; }
+    box.hidden = false;
+    var bar = document.getElementById("qBar"), tot = document.getElementById("qTotalText"), at = document.getElementById("qAppText");
+    if (q.limit && q.usage) {
+      var p = q.usage / q.limit * 100, app = q.app / q.limit * 100;
+      tot.textContent = "구글 계정 저장공간 " + fmtBytes(q.limit) + " 중 " + fmtBytes(q.usage) + " 사용 (" + fmtPct(p) + ")";
+      bar.hidden = false; bar.className = "qbar" + (p >= 95 ? " danger" : p >= 80 ? " warn" : "");
+      document.getElementById("qUsed").style.width = Math.min(100, p) + "%"; document.getElementById("qApp").style.width = Math.min(100, app) + "%";
+      at.textContent = "이 앱 " + fmtBytes(q.app) + " (전체의 " + fmtPct(app) + ")  ·  파란 막대가 이 앱이 쓴 부분입니다";
+    } else {
+      bar.hidden = true;
+      tot.textContent = q.usage ? "구글 계정 저장공간 " + fmtBytes(q.usage) + " 사용 (용량 제한 없음)" : "계정 전체 사용률을 읽지 못했습니다" + (q.totalErr ? " (" + q.totalErr + ")" : "");
+      at.textContent = "이 앱 " + fmtBytes(q.app);
+    }
+  }
+  function todayKey() { return AI.today(); }
+  function checkQuotaWarn(q) {
+    var b = document.getElementById("quotaBanner");
+    if (!q || !q.limit || !q.usage || !(window.Sync && Sync.enabled())) { b.hidden = true; return; }
+    var p = q.usage / q.limit * 100;
+    if (p < 80) { b.hidden = true; return; }
+    var msg = "구글 저장공간이 " + Math.round(p) + "% 찼습니다. 가득 차면 동기화가 실패하니 드라이브·Gmail·포토에서 불필요한 파일을 정리해 주세요.";
+    document.getElementById("quotaText").textContent = msg;
+    if (Settings.get("quotaDismiss") !== todayKey()) b.hidden = false;
+    if (window.Notify && Settings.get("quotaNotify") !== todayKey()) { Settings.set("quotaNotify", todayKey()); Notify.alertNow(1999999997, "구글 저장공간 " + Math.round(p) + "% 사용 중", "용량이 가득 차기 전에 정리해 주세요. 가득 차면 동기화가 실패합니다."); }
+  }
+  document.getElementById("quotaClose").addEventListener("click", function () { document.getElementById("quotaBanner").hidden = true; Settings.set("quotaDismiss", todayKey()); });
+  if (window.Sync) Sync.onUsage(function (q) { renderUsage(q); checkQuotaWarn(q); });
+
   function openSettings() {
     if (!onboardEl.hidden) { onboardEl.hidden = true; closeOverlayUI("onboard"); }
     settingsModalEl.hidden = false; pushOverlay("settingsApp", hideSettings); refreshSettings();
+    if (window.Sync && Sync.enabled()) Sync.refreshUsage(false).catch(function () {});
   }
   document.getElementById("menuSettings").addEventListener("click", function () { hideMenu(); dropOverlay("menu"); openSettings(); });
   document.getElementById("settingsClose").addEventListener("click", closeSettings);
@@ -113,7 +149,7 @@
   });
   document.getElementById("driveNow").addEventListener("click", async function () {
     var b = this; b.disabled = true;
-    try { await Sync.run({ interactive: false }); toast("동기화했습니다"); }
+    try { await Sync.run({ interactive: false }); await Sync.refreshUsage(true).catch(function () {}); toast("동기화했습니다"); }
     catch (e) { toast((e && e.message) || "동기화하지 못했습니다."); }
     b.disabled = false; refreshDrive();
   });
@@ -214,6 +250,7 @@
       loadTasks(); loadMeetings(); loadVocab();
       nativeResume();
       checkUpdate(false);
+      checkQuotaWarn(Settings.get("driveQuota"));
       document.getElementById("updCheck").hidden = !(window.Updater && Updater.available());
       DB.onChange(function () { Sync.schedule(); });
       Sync.run().catch(function () {});

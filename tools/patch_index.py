@@ -26,6 +26,12 @@ cut('<div class="notify-banner" id="installBanner" hidden>', '<div class="modal-
   <button type="button" class="primary" id="updateGo">업데이트</button>
 </div>
 
+<div class="notify-banner" id="quotaBanner" hidden>
+  <span id="quotaText"></span>
+  <button type="button" class="ghost" id="quotaClose">닫기</button>
+  <a class="primary" id="quotaGo" href="https://one.google.com/storage" target="_blank" rel="noopener" style="padding:8px 12px;border-radius:8px;text-decoration:none;background:var(--accent);color:#fff;font-weight:600;flex-shrink:0">용량 관리</a>
+</div>
+
 <div class="modal-back" id="settingsModal" hidden>
   <div class="modal" role="dialog" aria-modal="true" aria-label="설정">
     <h3>설정</h3>
@@ -50,6 +56,11 @@ cut('<div class="notify-banner" id="installBanner" hidden>', '<div class="modal-
       <section class="set-sec" id="driveSec">
         <h4>구글 드라이브 동기화</h4>
         <div class="mdesc2" id="driveStatus"></div>
+        <div id="driveUsage" hidden>
+          <div class="qrow"><span id="qTotalText"></span></div>
+          <div class="qbar" id="qBar" role="img"><i id="qUsed"></i><b id="qApp"></b></div>
+          <div class="qrow muted2" id="qAppText"></div>
+        </div>
         <div class="set-row"><button type="button" class="primary" id="driveConnect">구글 계정 연결</button><button type="button" class="ghost" id="driveNow" hidden>지금 동기화</button><button type="button" class="ghost" id="driveOff" hidden>연결 해제</button></div>
         <div class="mdesc2">같은 구글 계정으로 연결한 기기끼리 할일·회의록·프로젝트·용어 사전이 맞춰집니다. 데이터는 내 드라이브의 앱 전용 숨김 폴더에만 저장되고 다른 곳에는 전송되지 않습니다. API 키는 동기화되지 않으니 기기마다 넣어 주세요.</div>
       </section>
@@ -112,6 +123,12 @@ sub1('</style>\n</head>', '''.set-list { padding-bottom: 8px; }
 .mdesc2 { font-size: 12px; color: var(--muted); line-height: 1.55; overflow-wrap: anywhere; }
 .ob-agree { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; line-height: 1.55; }
 .ob-agree input { margin-top: 3px; flex: 0 0 auto; width: 18px; height: 18px; }
+.qrow { font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
+.muted2 { color: var(--muted); font-size: 12px; }
+.qbar { position: relative; height: 12px; border-radius: 99px; background: var(--border); overflow: hidden; margin: 6px 0; }
+.qbar i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--accent); }
+.qbar.warn i { background: #d97706; } .qbar.danger i { background: var(--danger); }
+.qbar b { position: absolute; left: 0; top: 0; bottom: 0; background: #1d4ed8; min-width: 2px; }
 .set-list input[type=password], .set-list input[type=text] { width: 100%; }
 </style>
 </head>''')
