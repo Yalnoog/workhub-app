@@ -125,6 +125,8 @@ sub1('</style>\n</head>', '''.set-list { padding-bottom: 8px; }
 .mdesc2 { font-size: 12px; color: var(--muted); line-height: 1.55; overflow-wrap: anywhere; }
 .ob-agree { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; line-height: 1.55; }
 .ob-agree input { margin-top: 3px; flex: 0 0 auto; width: 18px; height: 18px; }
+#ptr { position: fixed; top: calc(env(safe-area-inset-top, 0px) + 6px); left: 50%; z-index: 80; background: var(--surface); color: var(--fg); border: 1px solid var(--border); border-radius: 999px; padding: 7px 16px; font-size: 13px; box-shadow: 0 4px 14px rgba(0,0,0,.2); pointer-events: none; white-space: nowrap; transform: translate(-50%, -40px); }
+#ptr.ready { border-color: var(--accent); color: var(--accent); font-weight: 600; }
 .set-pick { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; font-size: 13px; }
 .set-pick select { min-width: 150px; }
 .qrow { font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }

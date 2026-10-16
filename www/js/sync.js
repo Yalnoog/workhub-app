@@ -156,7 +156,7 @@
   }
 
   // ---------- 실행 ----------
-  var chain = Promise.resolve(), applied = null, timer = null, state = { running: false };
+  var chain = Promise.resolve(), applied = null, timer = null, dirty = false, state = { running: false };
   function enabled() { return !!window.Settings.get("driveOn"); }
 
   async function runOnce(interactive) {
@@ -189,7 +189,7 @@
     var interactive = !!(opts && opts.interactive);
     var p = chain.then(function () {
       if (!interactive && !enabled()) return 0;
-      state.running = true; if (state.onState) state.onState();
+      state.running = true; dirty = false; if (state.onState) state.onState();
       return runOnce(interactive);
     });
     chain = p.catch(function () {});
@@ -201,15 +201,23 @@
 
   function schedule(ms) {   // 로컬 변경 후 잠시 모아서 한 번에 올린다
     if (!enabled()) return;
+    dirty = true;
     clearTimeout(timer);
     timer = setTimeout(function () { run().catch(function () {}); }, ms == null ? 8000 : ms);
+  }
+
+  // 앱이 화면에서 사라지는 순간: 아직 못 올린 변경이 있으면 기다리지 않고 바로 올린다
+  function flush() {
+    if (!enabled() || !dirty) return Promise.resolve(0);
+    clearTimeout(timer);
+    return run();
   }
 
   async function connect() { await run({ interactive: true }); await window.Settings.set("driveOn", true); schedule(0); }
   async function disconnect() { clearTimeout(timer); await window.Settings.set("driveOn", false); await window.Settings.remove("driveErr"); }
 
   window.Sync = {
-    available: available, enabled: enabled, run: run, schedule: schedule, connect: connect, disconnect: disconnect, state: state,
+    available: available, enabled: enabled, run: run, schedule: schedule, flush: flush, connect: connect, disconnect: disconnect, state: state,
     merge: merge, canon: canon, localSnapshot: localSnapshot, FILE: FILE,
     onApplied: function (fn) { applied = fn; },
     onUsage: function (fn) { usageCb = fn; }, refreshUsage: refreshUsage,

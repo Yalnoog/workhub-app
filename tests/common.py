@@ -43,7 +43,7 @@ def mock_gemini(ctx, handler=None):
 def open_app(p, size="cover", key=True, handler=None, skip_onboard=True):
     w, h = SIZES[size]
     br = p.chromium.launch(args=["--use-fake-device-for-media-stream", "--use-fake-ui-for-media-stream"])
-    ctx = br.new_context(viewport={"width": w, "height": h}, permissions=["microphone"])
+    ctx = br.new_context(viewport={"width": w, "height": h}, permissions=["microphone"], has_touch=True)
     errs = []
     mock_gemini(ctx, handler)
     pg = ctx.new_page()

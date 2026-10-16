@@ -240,6 +240,54 @@
     } catch (e) { msg.textContent = aiMsg(e, "키를 확인하지 못했습니다."); updateObOk(); }
   });
 
+  // ---- 당겨서 새로고침 (맨 위에서 아래로 쓸어내리기) ----
+  async function pullRefresh() {
+    var msg = "새로고침했습니다";
+    if (window.Sync && Sync.enabled()) {
+      try { await Sync.run(); await Sync.refreshUsage(true).catch(function () {}); }
+      catch (e) { msg = (e && e.message) || "동기화하지 못했습니다."; }
+    }
+    await Promise.all([loadTasks(), loadMeetings(), loadVocab()]);
+    checkUpdate(false);
+    toast(msg);
+  }
+  (function initPull() {
+    var el = document.createElement("div"); el.id = "ptr"; el.hidden = true; document.body.appendChild(el);
+    var st = null, busy = false, TH = 70;
+    function root() { return document.scrollingElement || document.documentElement; }
+    function recording() { return (typeof rec !== "undefined" && (rec.active || rec.interrupted)) || (typeof NR !== "undefined" && NR.active); }
+    function blocked(t) { return !!document.querySelector(".modal-back:not([hidden])") || !!(t && t.closest && t.closest(".pi[data-taskid], textarea, input, select")); }
+    function show(dy, ready, note) {
+      el.hidden = false; el.style.transform = "translate(-50%, " + (Math.min(dy * 0.5, 90) - 40) + "px)";
+      el.textContent = note || (busy ? "새로고침 중..." : ready ? "놓으면 새로고침" : "↓ 당겨서 새로고침"); el.classList.toggle("ready", !note && (ready || busy));
+    }
+    function hide() { el.hidden = true; }
+    document.addEventListener("touchstart", function (e) {
+      st = null; if (busy || e.touches.length !== 1 || root().scrollTop > 0 || blocked(e.target)) return;
+      st = { x: e.touches[0].clientX, y: e.touches[0].clientY, pulling: false, dy: 0, rec: recording() };   // 녹음 중이면 당겨도 새로고침하지 않는다
+    }, { passive: true });
+    document.addEventListener("touchmove", function (e) {
+      if (!st || busy) return;
+      if (typeof dnd !== "undefined" && dnd.item) { st = null; hide(); return; }   // 프로젝트 화면의 길게 눌러 끌기와 겹치지 않게
+      var dy = e.touches[0].clientY - st.y, dx = e.touches[0].clientX - st.x;
+      if (!st.pulling) {
+        if (dy > 12 && dy > Math.abs(dx) * 1.5) st.pulling = true;
+        else if (dy < -6 || Math.abs(dx) > 20) { st = null; return; }
+        else return;
+      }
+      if (root().scrollTop > 0) { st = null; hide(); return; }
+      st.dy = dy; show(dy, dy >= TH, st.rec ? "녹음 중에는 새로고침하지 않습니다" : "");
+    }, { passive: true });
+    document.addEventListener("touchend", async function () {
+      if (!st) return; var s = st; st = null;
+      if (!s.pulling) return;
+      if (s.rec) { hide(); return; }
+      if (s.dy >= TH) { busy = true; show(TH, false); try { await pullRefresh(); } finally { busy = false; hide(); } }
+      else hide();
+    });
+    document.addEventListener("touchcancel", function () { st = null; hide(); });
+  })();
+
   // ---- 앱 업데이트 ----
   function showUpdate(u) {
     var b = document.getElementById("updateBanner");
@@ -277,7 +325,11 @@
       document.getElementById("updCheck").hidden = !(window.Updater && Updater.available());
       DB.onChange(function () { Sync.schedule(); });
       Sync.run().catch(function () {});
-      document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible") { Sync.run().catch(function () {}); checkUpdate(false); } });
+      document.addEventListener("visibilitychange", function () {
+        if (document.visibilityState === "visible") { Sync.run().catch(function () {}); checkUpdate(false); }
+        else Sync.flush().catch(function () {});   // 다른 화면으로 넘어가는 순간 밀린 변경을 바로 올린다
+      });
+      window.addEventListener("pagehide", function () { Sync.flush().catch(function () {}); });
       setTimeout(function () { if (!Settings.get("apiKey")) openOnboarding(); }, 500);
       if (window.Notify) { window.LocalApi.on("tasks", function () { window.Notify.sync(); }); window.Notify.init().then(function () { window.Notify.sync(); }); }
     }).catch(function (e) {

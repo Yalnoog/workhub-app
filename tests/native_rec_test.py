@@ -27,6 +27,13 @@ with sync_playwright() as p:
     pg.click("#recBtn"); pg.wait_for_timeout(500)
     ok(pg.evaluate("window.__rec") is True and pg.evaluate("window.__seg") == 600, "네이티브 녹음 시작(조각 600초)")
     ok(pg.locator("#recBtn.recording").count() == 1 and "화면을 꺼도" in pg.text_content("#recStatus"), "녹음 중 안내")
+    PULL = """async ([x, y0, y1]) => { const tgt = document.elementFromPoint(x, y0) || document.body;
+      const mk = (type, y, end) => { const t = new Touch({ identifier: 1, target: tgt, clientX: x, clientY: y }); return new TouchEvent(type, { touches: end ? [] : [t], changedTouches: [t], bubbles: true, cancelable: true }); };
+      tgt.dispatchEvent(mk('touchstart', y0)); for (let i = 1; i <= 8; i++) { tgt.dispatchEvent(mk('touchmove', y0 + (y1 - y0) * i / 8)); await new Promise(r => setTimeout(r, 16)); }
+      const label = document.getElementById('ptr') && !document.getElementById('ptr').hidden ? document.getElementById('ptr').textContent : '';
+      tgt.dispatchEvent(mk('touchend', y1, true)); return label; }"""
+    lab = pg.evaluate(PULL, [200, 100, 260]); pg.wait_for_timeout(300)
+    ok("녹음 중" in lab and "화면을 꺼도" in pg.text_content("#recStatus"), f"네이티브 녹음 중에는 당겨서 새로고침 제외: {lab!r}")
     # 화면이 없는 사이 조각이 쌓인 상황
     pg.evaluate("window.__files.push({name:'rec_1.m4a', path:'/data/rec_1.m4a', size:3000}, {name:'rec_2.m4a', path:'/data/rec_2.m4a', size:3000})")
     pg.evaluate("document.dispatchEvent(new Event('visibilitychange'))"); pg.wait_for_timeout(1500)
