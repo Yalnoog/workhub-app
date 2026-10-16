@@ -42,7 +42,7 @@
     if (!APP_VERSION && window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform() && Capacitor.Plugins.WorkhubUpdate) {
       Capacitor.Plugins.WorkhubUpdate.version().then(function (v) { APP_VERSION = String(v.versionName).replace(/^v/i, ""); infoEl.textContent = infoEl.textContent.replace("독립형 앱", "독립형 앱 v" + APP_VERSION); });
     }
-    infoEl.textContent = "독립형 앱" + (APP_VERSION ? " v" + APP_VERSION : "") + " · 할일 " + DB.all("tasks").length + "건 · 회의록 " + DB.all("meetings").length + "건 · 데이터는 이 기기에만 저장됩니다.";
+    infoEl.textContent = "독립형 앱" + (APP_VERSION ? " v" + APP_VERSION : "") + " · 할일 " + DB.all("tasks").length + "건 · 회의록 " + DB.all("meetings").length + "건 · " + (window.Sync && Sync.enabled() ? "데이터는 이 기기와 내 구글 드라이브(앱 전용 폴더)에 저장됩니다." : "데이터는 이 기기에만 저장됩니다.");
     refreshDrive();
     document.getElementById("updCheck").hidden = !(window.Updater && Updater.available());
     var sec = document.getElementById("notifySec");

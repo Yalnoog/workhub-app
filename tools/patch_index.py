@@ -62,7 +62,7 @@ cut('<div class="notify-banner" id="installBanner" hidden>', '<div class="modal-
           <div class="qrow muted2" id="qAppText"></div>
         </div>
         <div class="set-row"><button type="button" class="primary" id="driveConnect">구글 계정 연결</button><button type="button" class="ghost" id="driveNow" hidden>지금 동기화</button><button type="button" class="ghost" id="driveOff" hidden>연결 해제</button></div>
-        <div class="mdesc2">같은 구글 계정으로 연결한 기기끼리 할일·회의록·프로젝트·용어 사전이 맞춰집니다. 데이터는 내 드라이브의 앱 전용 숨김 폴더에만 저장되고 다른 곳에는 전송되지 않습니다. API 키는 동기화되지 않으니 기기마다 넣어 주세요.</div>
+        <div class="mdesc2">같은 구글 계정으로 연결한 기기끼리 할일·회의록·프로젝트·용어 사전과 직무 설명·알림 설정이 맞춰집니다. 데이터는 내 드라이브의 앱 전용 숨김 폴더에만 저장되고 다른 곳에는 전송되지 않습니다. API 키는 기본적으로 동기화되지 않으며, 위 "API 키 동기화" 스위치를 켠 경우에만 올라갑니다.</div>
       </section>
       <section class="set-sec">
         <h4>백업</h4>
