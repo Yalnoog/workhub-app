@@ -61,3 +61,7 @@ cd android && ./gradlew assembleDebug
 - 배포: `git tag v0.1.0 && git push --tags` → GitHub Actions가 서명된 APK를 Releases에 올립니다.
   저장소 Secrets에 `WH_KEYSTORE_B64`(키스토어 파일의 base64), `WH_KS_PASS`, `WH_KEY_ALIAS`, `WH_KEY_PASS` 가 필요합니다.
   **서명 키를 잃어버리면 기존 사용자는 업데이트를 덮어 설치할 수 없으니 반드시 따로 보관하세요.**
+
+## 라이선스
+
+사용(설치)은 자유이지만 코드의 수정·재배포는 허용하지 않습니다. 자세한 내용은 [LICENSE](LICENSE)를 보세요.
