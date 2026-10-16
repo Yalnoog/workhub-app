@@ -2027,10 +2027,21 @@ footer.hint { color: var(--muted); font-size: 11px; text-align: center; padding-
     var f = e.target.files[0]; e.target.value = ""; if (!f) return;
     var obj; try { obj = JSON.parse(await f.text()); if (obj.app !== "workhub-standalone") throw new Error("x"); } catch (err) { toast("올바른 백업 파일이 아닙니다"); return; }
     var n = (obj.data.tasks || []).length, m = (obj.data.meetings || []).length;
-    var r = await askConfirm([{ title: "백업 불러오기", ok: "불러오기", danger: true,
-      html: '<div class="cf-body">백업 파일의 할일 <b>' + n + '건</b>, 회의록 <b>' + m + '건</b>으로 <span class="cf-warn">현재 데이터를 모두 대체</span>합니다. (API 키는 유지됩니다)</div>' }]);
+    var r = await askConfirm([{ title: "백업 불러오기", ok: "불러오기",
+      html: '<div class="cf-body">백업 파일: 할일 <b>' + n + '건</b>, 회의록 <b>' + m + '건</b><br>이 기기에는 할일 ' + DB.all("tasks").length + '건, 회의록 ' + DB.all("meetings").length + '건이 있습니다.</div>'
+        + '<label class="ob-agree" style="margin:8px 0"><input type="radio" name="mode" value="merge" checked><span><b>합치기 (추천)</b><br><span class="mdesc2">이 기기의 데이터는 그대로 두고, 백업에만 있는 항목을 더합니다. 같은 파일을 다시 불러와도 중복되지 않습니다.</span></span></label>'
+        + '<label class="ob-agree"><input type="radio" name="mode" value="replace"><span><b>대체</b><br><span class="mdesc2 cf-warn">현재 데이터를 모두 지우고 백업 내용으로 바꿉니다. (API 키는 유지됩니다)</span></span></label>' }]);
     if (!r.ok) return;
-    try { await DB.restore(obj); await loadTasks(); await loadMeetings(); await loadVocab(); refreshSettings(); toast("백업을 불러왔습니다"); if (window.Notify) window.Notify.sync(); }
+    try {
+      if ((r.data.mode || "merge") === "merge") {
+        var a = await Sync.mergeBackup(obj);
+        await loadTasks(); await loadMeetings(); await loadVocab(); refreshSettings();
+        toast("합쳤습니다: 할일 " + a.tasks + " · 회의록 " + a.meetings + " · 프로젝트 " + a.projects + " · 용어 " + a.vocab + "건 추가");
+      } else {
+        await DB.restore(obj); await loadTasks(); await loadMeetings(); await loadVocab(); refreshSettings(); toast("백업으로 바꿨습니다");
+      }
+      if (window.Notify) window.Notify.sync();
+    }
     catch (err) { toast("백업을 불러오지 못했습니다"); }
   });
   document.getElementById("wipeAll").addEventListener("click", async function () {

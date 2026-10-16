@@ -95,6 +95,35 @@
     return ops.length;
   }
 
+  // ---------- 백업 합치기 ----------
+  // 이 기기의 데이터는 그대로 두고 백업에만 있는 항목을 더한다(같은 id는 건너뜀). 같은 이름의 프로젝트는 하나로 합치고 회의록 연결을 옮긴다.
+  // 새로 들어온 항목은 일반 저장으로 수정 시각이 찍혀 구글 드라이브 동기화에 실린다.
+  async function mergeBackup(obj) {
+    if (!obj || obj.app !== "workhub-standalone" || !obj.data) throw new Error("올바른 백업 파일이 아닙니다.");
+    var D = window.DB, d = obj.data, ops = [], add = { tasks: 0, meetings: 0, projects: 0, vocab: 0 }, pmap = {};
+    var byName = {}; D.all("projects").forEach(function (p) { byName[norm(p.name)] = p.id; });
+    (d.projects || []).forEach(function (p) {
+      var k = norm(p.name);
+      if (D.get("projects", p.id)) { pmap[p.id] = p.id; return; }
+      if (byName[k]) { pmap[p.id] = byName[k]; return; }
+      ops.push({ store: "projects", put: p }); byName[k] = p.id; pmap[p.id] = p.id; add.projects++;
+    });
+    (d.tasks || []).forEach(function (t) { if (!D.get("tasks", t.id)) { ops.push({ store: "tasks", put: t }); add.tasks++; } });
+    (d.meetings || []).forEach(function (m) {
+      if (D.get("meetings", m.id)) return;
+      var mm = Object.assign({}, m); if (mm.projectId) mm.projectId = pmap[mm.projectId] || null;
+      ops.push({ store: "meetings", put: mm }); add.meetings++;
+    });
+    var haveV = {}; D.all("vocab").forEach(function (v) { haveV[v.wrong + "→" + v.right] = 1; });
+    (d.vocab || []).forEach(function (v) {
+      var k = v.wrong + "→" + v.right;
+      if (D.get("vocab", v.id) || haveV[k]) return;
+      ops.push({ store: "vocab", put: v }); haveV[k] = 1; add.vocab++;
+    });
+    await D.batch(ops);
+    return add;
+  }
+
   // ---------- 구글 로그인(네이티브) + 드라이브 REST ----------
   function plugin() { var C = window.Capacitor; return (C && C.isNativePlatform && C.isNativePlatform() && C.Plugins && C.Plugins.WorkhubGoogle) || null; }
   function available() { return !!plugin(); }
@@ -218,7 +247,7 @@
 
   window.Sync = {
     available: available, enabled: enabled, run: run, schedule: schedule, flush: flush, connect: connect, disconnect: disconnect, state: state,
-    merge: merge, canon: canon, localSnapshot: localSnapshot, FILE: FILE,
+    merge: merge, mergeBackup: mergeBackup, canon: canon, localSnapshot: localSnapshot, FILE: FILE,
     onApplied: function (fn) { applied = fn; },
     onUsage: function (fn) { usageCb = fn; }, refreshUsage: refreshUsage,
   };
