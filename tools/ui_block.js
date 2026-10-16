@@ -43,7 +43,7 @@
       Capacitor.Plugins.WorkhubUpdate.version().then(function (v) { APP_VERSION = String(v.versionName).replace(/^v/i, ""); infoEl.textContent = infoEl.textContent.replace("독립형 앱", "독립형 앱 v" + APP_VERSION); });
     }
     infoEl.textContent = "독립형 앱" + (APP_VERSION ? " v" + APP_VERSION : "") + " · 할일 " + DB.all("tasks").length + "건 · 회의록 " + DB.all("meetings").length + "건 · " + (window.Sync && Sync.enabled() ? "데이터는 이 기기와 내 구글 드라이브(앱 전용 폴더)에 저장됩니다." : "데이터는 이 기기에만 저장됩니다.");
-    refreshDrive();
+    refreshDrive(); refreshNotifyPick();
     document.getElementById("updCheck").hidden = !(window.Updater && Updater.available());
     var sec = document.getElementById("notifySec");
     if (window.Notify && window.Notify.isNative && window.Notify.isNative()) {
@@ -63,6 +63,29 @@
       + (err && on ? " · 오류: " + err.msg : "");
     renderUsage(on ? Settings.get("driveQuota") : null);
   }
+  // ---- 알림 시각 선택 ----
+  var LEADS = [[0, "마감 시각 정각"], [5, "5분 전"], [10, "10분 전"], [15, "15분 전"], [30, "30분 전"], [60, "1시간 전"], [120, "2시간 전"], [180, "3시간 전"], [1440, "하루 전"]];
+  function fillPick(sel, opts, cur) {
+    var list = opts.slice();
+    if (!list.some(function (o) { return o[0] === cur; })) list.push([cur, cur + (sel.id === "leadSel" ? "분 전" : "시")]);   // 다른 기기에서 넘어온 값도 보이게
+    sel.innerHTML = list.map(function (o) { return '<option value="' + o[0] + '">' + o[1] + '</option>'; }).join("");
+    sel.value = String(cur);
+  }
+  function refreshNotifyPick() {
+    var hours = []; for (var h = 0; h < 24; h++) hours.push([h, (h < 12 ? "오전 " : "오후 ") + (h % 12 === 0 ? 12 : h % 12) + "시"]);
+    fillPick(document.getElementById("leadSel"), LEADS, Number(Settings.get("notifyLeadMin")));
+    fillPick(document.getElementById("hourSel"), hours, Number(Settings.get("notifyHour")));
+  }
+  function onPick(key) {
+    return async function () {
+      await Settings.set(key, Number(this.value));
+      if (window.Notify) { await Notify.sync(); }
+      toast("알림 시각을 바꿨습니다"); refreshSettings();
+    };
+  }
+  document.getElementById("leadSel").addEventListener("change", onPick("notifyLeadMin"));
+  document.getElementById("hourSel").addEventListener("change", onPick("notifyHour"));
+
   // ---- 드라이브 저장공간 표시 + 80% 경고 ----
   function fmtBytes(n) { return n >= 1073741824 ? (n / 1073741824).toFixed(1) + "GB" : n >= 1048576 ? (n / 1048576).toFixed(1) + "MB" : n >= 1024 ? Math.round(n / 1024) + "KB" : n + "B"; }
   function fmtPct(x) { return x >= 10 ? Math.round(x) + "%" : x >= 1 ? x.toFixed(1) + "%" : x >= 0.01 ? x.toFixed(2) + "%" : "0.01% 미만"; }

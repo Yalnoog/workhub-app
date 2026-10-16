@@ -10,19 +10,29 @@
 
   function numId(s) { var h = 7; for (var i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return (Math.abs(h) % 2000000000) + 1; }
 
-  // 마감 시각 -> 알림 시각(Date) 또는 null
-  function fireAt(t, now) {
+  // 마감 시각 -> 알림 시각(Date) 또는 null.
+  // fired: 이미 "곧바로 알림"으로 예약한 건의 기록 {키: 알림 시각(ms)}. 같은 건을 앱을 열 때마다 다시 울리지 않고, 예약된 시각은 유지한다.
+  // fresh: 이번에 새로 기록할 항목을 담는 객체
+  function fireAt(t, now, fired, fresh) {
     if (!t.due || t.status === "done") return null;
     var p = t.due.split("-"); if (p.length !== 3) return null;
     var lead = Number(window.Settings.get("notifyLeadMin")), hour = Number(window.Settings.get("notifyHour"));
+    if (isNaN(lead)) lead = 30; if (isNaN(hour)) hour = 9;
     var at;
     if (t.dueTime && /^\d{2}:\d{2}$/.test(t.dueTime)) {
       var hm = t.dueTime.split(":");
-      at = new Date(+p[0], +p[1] - 1, +p[2], +hm[0], +hm[1] - (isNaN(lead) ? 30 : lead), 0);
-      // 알림 시각은 지났지만 마감 시각은 아직 안 지났으면 곧바로(1분 뒤) 알려 준다 - 단, 이미 알린 건은 제외
-      if (at <= now) { var due = new Date(+p[0], +p[1] - 1, +p[2], +hm[0], +hm[1], 0); at = due > now ? new Date(now.getTime() + 60000) : null; if (at && t.notified) at = null; }
+      at = new Date(+p[0], +p[1] - 1, +p[2], +hm[0], +hm[1] - lead, 0);
+      if (at <= now) {
+        // 알림 시각은 지났지만 마감 시각은 아직 안 지났으면 곧바로(1분 뒤) 한 번만 알려 준다
+        var due = new Date(+p[0], +p[1] - 1, +p[2], +hm[0], +hm[1], 0);
+        if (due <= now || t.notified) return null;
+        var key = t.id + "|" + t.due + "|" + t.dueTime + "|" + lead;
+        if (fired && fired[key] != null) return fired[key] > now.getTime() ? new Date(fired[key]) : null;
+        at = new Date(now.getTime() + 60000);
+        if (fresh) fresh[key] = at.getTime();
+      }
     } else {
-      at = new Date(+p[0], +p[1] - 1, +p[2], isNaN(hour) ? 9 : hour, 0, 0);
+      at = new Date(+p[0], +p[1] - 1, +p[2], hour, 0, 0);
       if (at <= now) at = null;
     }
     return at;
@@ -35,9 +45,9 @@
     return parts.join(" · ");
   }
 
-  function plan(tasks, now) {
+  function plan(tasks, now, fired, fresh) {
     var out = [];
-    tasks.forEach(function (t) { var at = fireAt(t, now); if (at) out.push({ task: t, at: at }); });
+    tasks.forEach(function (t) { var at = fireAt(t, now, fired, fresh); if (at) out.push({ task: t, at: at }); });
     out.sort(function (a, b) { return a.at - b.at; });
     return out.slice(0, MAX);
   }
@@ -54,7 +64,10 @@
     if (pend.notifications && pend.notifications.length) await ln.cancel({ notifications: pend.notifications.map(function (n) { return { id: n.id }; }) });
     var perm = await ln.checkPermissions();
     if (perm.display !== "granted") return;
-    var items = plan(window.DB.all("tasks"), new Date());
+    var now = new Date(), fired = window.Settings.get("notifFired") || {}, fresh = {};
+    Object.keys(fired).forEach(function (k) { if (fired[k] < now.getTime() - 7 * 86400000) delete fired[k]; });   // 일주일 지난 기록은 정리
+    var items = plan(window.DB.all("tasks"), now, fired, fresh);
+    if (Object.keys(fresh).length || Object.keys(fired).length !== (window.Settings.get("notifFired") ? Object.keys(window.Settings.get("notifFired")).length : 0)) await window.Settings.set("notifFired", Object.assign(fired, fresh));
     if (!items.length) return;
     await ln.schedule({ notifications: items.map(function (it) {
       return { id: numId(it.task.id), title: it.task.title, body: bodyOf(it.task), schedule: { at: it.at, allowWhileIdle: true }, channelId: "due", extra: { taskId: it.task.id } };

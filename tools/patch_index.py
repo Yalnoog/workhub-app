@@ -51,6 +51,8 @@ cut('<div class="notify-banner" id="installBanner" hidden>', '<div class="modal-
       <section class="set-sec" id="notifySec" hidden>
         <h4>마감일 알림</h4>
         <div class="mdesc2" id="notifyStatus"></div>
+        <div class="set-pick"><label for="leadSel">시간이 정해진 일정</label><select id="leadSel"></select></div>
+        <div class="set-pick"><label for="hourSel">시간 없이 날짜만 있는 할일</label><select id="hourSel"></select></div>
         <div class="set-row"><button type="button" class="ghost" id="notifyPerm">알림 권한 확인·요청</button><button type="button" class="ghost" id="notifyTest">테스트 알림</button></div>
       </section>
       <section class="set-sec" id="driveSec">
@@ -123,6 +125,8 @@ sub1('</style>\n</head>', '''.set-list { padding-bottom: 8px; }
 .mdesc2 { font-size: 12px; color: var(--muted); line-height: 1.55; overflow-wrap: anywhere; }
 .ob-agree { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; line-height: 1.55; }
 .ob-agree input { margin-top: 3px; flex: 0 0 auto; width: 18px; height: 18px; }
+.set-pick { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; font-size: 13px; }
+.set-pick select { min-width: 150px; }
 .qrow { font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
 .muted2 { color: var(--muted); font-size: 12px; }
 .qbar { position: relative; height: 12px; border-radius: 99px; background: var(--border); overflow: hidden; margin: 6px 0; }
