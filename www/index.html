@@ -1281,7 +1281,8 @@ footer.hint { color: var(--muted); font-size: 11px; text-align: center; padding-
     }
     try { await openMic(); } catch (e) { setRecStatus("마이크 권한이 필요합니다."); return; }
     rec.active = true; rec.interrupted = false;
-    rec.nextSeq = 0; rec.appendSeq = 0; rec.results = {}; rec.pending = 0; rec.failed = 0;
+    if (!rec.pending) { rec.nextSeq = 0; rec.appendSeq = 0; rec.results = {}; }   // 이전 녹음의 변환이 아직 진행 중이면 순번·대기 수를 건드리지 않는다
+    rec.failed = DB.all("segments").length;
     btn.classList.add("recording");
     startKeepAlive(); await acquireWakeLock();
     startSegment();

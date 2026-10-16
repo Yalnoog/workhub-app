@@ -146,7 +146,7 @@ sub1('    try { text = await transcribeSegment(blob); } catch (e) { text = ""; }
       aiFail(e);
     }''')
 sub1('wakeLock: null, keepAlive: null, nextSeq: 0,', 'wakeLock: null, keepAlive: null, failed: 0, nextSeq: 0,')
-sub1("    rec.nextSeq = 0; rec.appendSeq = 0; rec.results = {}; rec.pending = 0;", "    rec.nextSeq = 0; rec.appendSeq = 0; rec.results = {}; rec.pending = 0; rec.failed = 0;")
+sub1("    rec.nextSeq = 0; rec.appendSeq = 0; rec.results = {}; rec.pending = 0;", "    if (!rec.pending) { rec.nextSeq = 0; rec.appendSeq = 0; rec.results = {}; }   // 이전 녹음의 변환이 아직 진행 중이면 순번·대기 수를 건드리지 않는다\n    rec.failed = DB.all(\"segments\").length;")
 sub1("    setRecStatus('변환 완료. 메모에 추가됐습니다.');", "    setRecStatus(rec.failed ? '<b>' + rec.failed + '개 구간을 변환하지 못했습니다.</b> 녹음은 보관돼 있으니 <a href=\"#\" id=\"retrySegs\">다시 변환</a>을 눌러 보세요.' : '변환 완료. 메모에 추가됐습니다.');")
 
 # 파일 변환

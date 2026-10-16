@@ -22,7 +22,7 @@ with sync_playwright() as p:
     ok(mode["n"] >= 2, f"짧은 조각으로 나뉘어 여러 번 변환됨 ({mode['n']}회)")
     # 실패 -> 보관 -> 다시 변환
     mode["fail"] = True; pg.evaluate("document.getElementById('rawNotes').value=''")
-    pg.click("#recBtn"); pg.wait_for_timeout(1800); pg.click("#recBtn"); pg.wait_for_timeout(5000)
+    pg.click("#recBtn"); pg.wait_for_timeout(1800); pg.click("#recBtn"); pg.wait_for_function("DB.all('segments').length>=1 && document.getElementById('recStatus').textContent.includes('다시 변환')", timeout=30000)
     n = pg.evaluate("DB.all('segments').length")
     ok(n >= 1, f"변환 실패한 녹음 조각이 보관됨 ({n}개)")
     ok("다시 변환" in pg.text_content("#recStatus"), f"실패 안내와 재시도 링크: {pg.text_content('#recStatus')!r}")
