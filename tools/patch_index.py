@@ -141,7 +141,8 @@ sub1('</style>\n</head>', '''.set-list { padding-bottom: 8px; }
 
 # --- 스크립트 포함 ---
 sub1('<script>\n(function () {\n  "use strict";\n  var API = "/api";',
-     '''<script src="js/holidays-data.js"></script>
+     '''<script src="js/config.js"></script>
+<script src="js/holidays-data.js"></script>
 <script src="js/localdb.js"></script>
 <script src="js/settings.js"></script>
 <script src="js/ai.js"></script>

@@ -71,6 +71,9 @@ with sync_playwright() as p:
     A.evaluate("Object.defineProperty(document,'visibilityState',{value:'hidden',configurable:true}); document.dispatchEvent(new Event('visibilitychange'))")
     A.wait_for_timeout(1200)
     ok("닫기 직전 추가" in DRIVE["body"], "화면을 벗어나는 순간 즉시 올라감")
+    for _ in range(40):   # 앞선 동작의 후속 요청(지연 타이머 등)이 가라앉을 때까지 기다린 뒤 비교
+        c0 = DRIVE["calls"]; A.wait_for_timeout(700)
+        if DRIVE["calls"] == c0: break
     calls = DRIVE["calls"]
     A.evaluate("document.dispatchEvent(new Event('visibilitychange'))"); A.wait_for_timeout(600)
     ok(DRIVE["calls"] == calls, "올릴 변경이 없으면 네트워크를 쓰지 않음")

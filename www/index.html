@@ -587,6 +587,7 @@ footer.hint { color: var(--muted); font-size: 11px; text-align: center; padding-
 
 <footer class="hint">데이터는 개별 모바일에 저장됩니다.</footer>
 
+<script src="js/config.js"></script>
 <script src="js/holidays-data.js"></script>
 <script src="js/localdb.js"></script>
 <script src="js/settings.js"></script>
@@ -1876,7 +1877,7 @@ footer.hint { color: var(--muted); font-size: 11px; text-align: center; padding-
   function fmtAgo(ms) { var s = Math.max(0, Math.round((Date.now() - ms) / 1000)); return s < 60 ? "방금" : s < 3600 ? Math.floor(s / 60) + "분 전" : s < 86400 ? Math.floor(s / 3600) + "시간 전" : Math.floor(s / 86400) + "일 전"; }
   function refreshDrive() {
     var st = document.getElementById("driveStatus"), on = window.Sync && Sync.enabled(), err = Settings.get("driveErr");
-    if (!window.Sync || !Sync.available()) { st.textContent = "구글 드라이브 동기화는 안드로이드 앱에서만 쓸 수 있습니다. 지금은 브라우저 모드입니다."; document.getElementById("driveConnect").hidden = true; return; }
+    if (!window.Sync || !Sync.available()) { st.textContent = "구글 드라이브 동기화는 안드로이드 앱에서 쓸 수 있습니다. (웹 버전은 구글 로그인 설정이 아직 되어 있지 않습니다.)"; document.getElementById("driveConnect").hidden = true; return; }
     document.getElementById("driveConnect").hidden = on; document.getElementById("driveNow").hidden = !on; document.getElementById("driveOff").hidden = !on;
     st.textContent = (Sync.state.running ? "동기화 중..." : on ? "연결됨" + (Settings.get("driveLast") ? " · 마지막 동기화 " + fmtAgo(Settings.get("driveLast")) : "") : "연결되지 않았습니다.")
       + (err && on ? " · 오류: " + err.msg : "");
@@ -1991,7 +1992,7 @@ footer.hint { color: var(--muted); font-size: 11px; text-align: center; padding-
   });
   document.getElementById("driveNow").addEventListener("click", async function () {
     var b = this; b.disabled = true;
-    try { await Sync.run({ interactive: false }); await Sync.refreshUsage(true).catch(function () {}); toast("동기화했습니다"); }
+    try { await Sync.run({ interactive: !Sync.isNative() }); await Sync.refreshUsage(true).catch(function () {}); toast("동기화했습니다"); }
     catch (e) { toast((e && e.message) || "동기화하지 못했습니다."); }
     b.disabled = false; refreshDrive();
   });

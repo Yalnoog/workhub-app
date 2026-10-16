@@ -126,11 +126,48 @@
 
   // ---------- 구글 로그인(네이티브) + 드라이브 REST ----------
   function plugin() { var C = window.Capacitor; return (C && C.isNativePlatform && C.isNativePlatform() && C.Plugins && C.Plugins.WorkhubGoogle) || null; }
-  function available() { return !!plugin(); }
+  // 브라우저(웹) 버전: 구글 로그인(GIS) 토큰. 웹 OAuth 클라이언트 ID가 설정되어 있어야 한다.
+  function webId() { return window.WEB_CLIENT_ID || ""; }
+  function available() { return !!plugin() || !!webId(); }
   function SyncError(code, msg) { var e = new Error(msg); e.code = code; return e; }
 
+  var gisPromise = null, webTok = null;
+  function loadGis() {
+    if (window.google && window.google.accounts && window.google.accounts.oauth2) return Promise.resolve();
+    if (!gisPromise) gisPromise = new Promise(function (res, rej) {
+      var s = document.createElement("script"); s.src = "https://accounts.google.com/gsi/client"; s.async = true;
+      s.onload = function () { res(); }; s.onerror = function () { gisPromise = null; rej(SyncError("NETWORK", "구글 로그인 스크립트를 불러오지 못했습니다. 인터넷 연결을 확인해 주세요.")); };
+      document.head.appendChild(s);
+    });
+    return gisPromise;
+  }
+  async function webToken(interactive) {
+    if (webTok && webTok.exp > Date.now() + 60000) return webTok.token;
+    await loadGis();
+    return new Promise(function (resolve, reject) {
+      var done = false, timer = setTimeout(function () { if (!done) { done = true; reject(SyncError("NEED_CONSENT", "구글 계정 연결이 필요합니다. '지금 동기화'를 눌러 다시 연결해 주세요.")); } }, interactive ? 120000 : 15000);
+      function fail(code, msg) { if (done) return; done = true; clearTimeout(timer); reject(SyncError(code, msg)); }
+      var client = window.google.accounts.oauth2.initTokenClient({
+        client_id: webId(), scope: "https://www.googleapis.com/auth/drive.appdata",
+        callback: function (r) {
+          if (done) return;
+          if (r.error) return fail(r.error === "access_denied" ? "CANCELED" : "NEED_CONSENT", r.error === "access_denied" ? "연결을 취소했습니다." : "구글 계정 연결이 필요합니다. '지금 동기화'를 눌러 다시 연결해 주세요.");
+          done = true; clearTimeout(timer);
+          webTok = { token: r.access_token, exp: Date.now() + (Number(r.expires_in) || 3600) * 1000 };
+          resolve(webTok.token);
+        },
+        error_callback: function (e) { fail(e && e.type === "popup_closed" ? "CANCELED" : "NEED_CONSENT", e && e.type === "popup_closed" ? "연결을 취소했습니다." : "구글 계정 연결이 필요합니다. '지금 동기화'를 눌러 다시 연결해 주세요."); },
+      });
+      client.requestAccessToken({ prompt: interactive ? "" : "none" });
+    });
+  }
+
   async function token(interactive) {
-    var P = plugin(); if (!P) throw SyncError("NO_NATIVE", "구글 드라이브 동기화는 안드로이드 앱에서만 쓸 수 있습니다.");
+    var P = plugin();
+    if (!P) {
+      if (!webId()) throw SyncError("NO_NATIVE", "구글 드라이브 동기화가 아직 설정되지 않았습니다.");
+      return webToken(interactive);
+    }
     try { return (await P.getToken({ interactive: !!interactive })).accessToken; }
     catch (e) {
       var c = (e && e.code) || "";
@@ -145,6 +182,7 @@
     if (res.status === 401 || res.status === 403) {
       var body = ""; try { body = await res.text(); } catch (e) {}
       if (/insufficient|scope|accessNotConfigured|has not been used|disabled/i.test(body)) throw SyncError("DRIVE_API", "구글 드라이브 API 설정이 완료되지 않았습니다. (" + res.status + ")");
+      webTok = null;
       throw SyncError("AUTH", "구글 인증이 만료되었습니다. 설정에서 다시 연결해 주세요.");
     }
     if (!res.ok) throw SyncError("HTTP", "구글 드라이브 응답 오류 (" + res.status + ")");
@@ -246,7 +284,7 @@
   async function disconnect() { clearTimeout(timer); await window.Settings.set("driveOn", false); await window.Settings.remove("driveErr"); }
 
   window.Sync = {
-    available: available, enabled: enabled, run: run, schedule: schedule, flush: flush, connect: connect, disconnect: disconnect, state: state,
+    available: available, isNative: function () { return !!plugin(); }, enabled: enabled, run: run, schedule: schedule, flush: flush, connect: connect, disconnect: disconnect, state: state,
     merge: merge, mergeBackup: mergeBackup, canon: canon, localSnapshot: localSnapshot, FILE: FILE,
     onApplied: function (fn) { applied = fn; },
     onUsage: function (fn) { usageCb = fn; }, refreshUsage: refreshUsage,
