@@ -32,8 +32,8 @@ jobs:
           WH_VERSION_CODE: ${{ github.run_number }}
         run: ./gradlew assembleRelease --no-daemon
       - name: 파일 이름 정리
-        run: cp android/app/build/outputs/apk/release/app-release.apk "업무워크벤치-${{ github.ref_name }}.apk"
+        run: cp android/app/build/outputs/apk/release/app-release.apk "workhub-${{ github.ref_name }}.apk"
       - uses: softprops/action-gh-release@v2
         with:
-          files: 업무워크벤치-*.apk
+          files: workhub-*.apk
           generate_release_notes: true
