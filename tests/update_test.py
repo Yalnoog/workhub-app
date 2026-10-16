@@ -47,6 +47,8 @@ with sync_playwright() as p:
     # 설정 > 업데이트 확인 버튼
     pg.click("#settingsBtn"); pg.click("#menuSettings"); pg.wait_for_timeout(300)
     ok(pg.locator("#updCheck").is_visible(), "설정에 업데이트 확인 버튼(앱에서만)")
+    pg.wait_for_timeout(300)
+    ok("v0.1.1" in pg.text_content("#appInfo"), f"앱 정보에 실제 설치 버전 표시: {pg.text_content('#appInfo')[:30]!r}")
     ok(not errs, f"자바스크립트 오류 없음 {errs}")
     br.close()
 finish()
