@@ -20,7 +20,13 @@ def cut(start, end, new=""):
 # --- HTML: 메뉴 / 배너 / 새 모달 ---
 sub1('      <button type="button" role="menuitem" id="menuReload">페이지 새로고침</button>\n', '      <button type="button" role="menuitem" id="menuSettings">설정</button>\n')
 sub1('      <button type="button" role="menuitem" id="menuAccount">비밀번호 변경</button>\n      <button type="button" role="menuitem" id="menuLogout">로그아웃</button>\n', '')
-cut('<div class="notify-banner" id="installBanner" hidden>', '<div class="modal-back" id="vocabModal" hidden>', '''<div class="modal-back" id="settingsModal" hidden>
+cut('<div class="notify-banner" id="installBanner" hidden>', '<div class="modal-back" id="vocabModal" hidden>', '''<div class="notify-banner" id="updateBanner" hidden>
+  <span id="updateText"></span>
+  <button type="button" class="ghost" id="updateLater">나중에</button>
+  <button type="button" class="primary" id="updateGo">업데이트</button>
+</div>
+
+<div class="modal-back" id="settingsModal" hidden>
   <div class="modal" role="dialog" aria-modal="true" aria-label="설정">
     <h3>설정</h3>
     <div class="mlist set-list">
@@ -40,6 +46,12 @@ cut('<div class="notify-banner" id="installBanner" hidden>', '<div class="modal-
         <div class="mdesc2" id="notifyStatus"></div>
         <div class="set-row"><button type="button" class="ghost" id="notifyPerm">알림 권한 확인·요청</button><button type="button" class="ghost" id="notifyTest">테스트 알림</button></div>
       </section>
+      <section class="set-sec" id="driveSec">
+        <h4>구글 드라이브 동기화</h4>
+        <div class="mdesc2" id="driveStatus"></div>
+        <div class="set-row"><button type="button" class="primary" id="driveConnect">구글 계정 연결</button><button type="button" class="ghost" id="driveNow" hidden>지금 동기화</button><button type="button" class="ghost" id="driveOff" hidden>연결 해제</button></div>
+        <div class="mdesc2">같은 구글 계정으로 연결한 기기끼리 할일·회의록·프로젝트·용어 사전이 맞춰집니다. 데이터는 내 드라이브의 앱 전용 숨김 폴더에만 저장되고 다른 곳에는 전송되지 않습니다. API 키는 동기화되지 않으니 기기마다 넣어 주세요.</div>
+      </section>
       <section class="set-sec">
         <h4>백업</h4>
         <div class="mdesc2">데이터는 이 기기에만 있습니다. 기기를 바꾸거나 앱을 지우기 전에 백업 파일을 저장해 두세요. (API 키는 백업에 포함되지 않습니다)</div>
@@ -49,7 +61,7 @@ cut('<div class="notify-banner" id="installBanner" hidden>', '<div class="modal-
       <section class="set-sec">
         <h4>앱 정보</h4>
         <div class="mdesc2" id="appInfo"></div>
-        <div class="set-row"><button type="button" class="danger" id="wipeAll">모든 데이터 삭제</button></div>
+        <div class="set-row"><button type="button" class="ghost" id="updCheck" hidden>업데이트 확인</button><button type="button" class="danger" id="wipeAll">모든 데이터 삭제</button></div>
       </section>
     </div>
     <div class="mfoot"><button type="button" class="ghost" id="settingsClose">닫기</button></div>
@@ -112,6 +124,8 @@ sub1('<script>\n(function () {\n  "use strict";\n  var API = "/api";',
 <script src="js/api.js"></script>
 <script src="js/notify.js"></script>
 <script src="js/native.js"></script>
+<script src="js/sync.js"></script>
+<script src="js/updater.js"></script>
 <script>
 (function () {
   "use strict";''')

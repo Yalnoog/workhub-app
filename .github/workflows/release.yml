@@ -28,9 +28,10 @@ jobs:
           WH_KS_PASS: ${{ secrets.WH_KS_PASS }}
           WH_KEY_ALIAS: ${{ secrets.WH_KEY_ALIAS }}
           WH_KEY_PASS: ${{ secrets.WH_KEY_PASS }}
-          WH_VERSION_NAME: ${{ github.ref_name }}
           WH_VERSION_CODE: ${{ github.run_number }}
-        run: ./gradlew assembleRelease --no-daemon
+        run: |
+          export WH_VERSION_NAME="${GITHUB_REF_NAME#v}"
+          ./gradlew assembleRelease --no-daemon
       - name: 파일 이름 정리
         run: cp android/app/build/outputs/apk/release/app-release.apk "workhub-${{ github.ref_name }}.apk"
       - uses: softprops/action-gh-release@v2

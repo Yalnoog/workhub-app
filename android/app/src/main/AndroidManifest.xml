@@ -49,4 +49,6 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <!-- 일정/할일 앱의 정확한 시각 알림. 설치 시 자동 허용되어 사용자가 따로 설정할 필요가 없다(안드로이드 13+) -->
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <!-- 앱 안 업데이트: 내려받은 APK의 설치 화면을 띄우기 위해 필요 -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 </manifest>

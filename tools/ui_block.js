@@ -36,6 +36,8 @@
     document.getElementById("keyStatus").textContent = k ? "설정됨 (" + maskKey(k) + ")" : "아직 설정되지 않았습니다. 회의록 정리·음성 받아쓰기·자유 입력에 필요합니다.";
     document.getElementById("profileInput").value = Settings.get("profile") || "";
     document.getElementById("appInfo").textContent = "독립형 앱 v" + APP_VERSION + " · 할일 " + DB.all("tasks").length + "건 · 회의록 " + DB.all("meetings").length + "건 · 데이터는 이 기기에만 저장됩니다.";
+    refreshDrive();
+    document.getElementById("updCheck").hidden = !(window.Updater && Updater.available());
     var sec = document.getElementById("notifySec");
     if (window.Notify && window.Notify.isNative && window.Notify.isNative()) {
       sec.hidden = false;
@@ -44,6 +46,14 @@
           + (s.exact === false ? "정확한 시각 알람이 꺼져 있어 몇 분 늦을 수 있습니다" : "정확한 시각 알람 사용 가능") + " · 예약된 알림 " + s.pending + "개";
       });
     } else { sec.hidden = false; document.getElementById("notifyStatus").textContent = "알림은 안드로이드 앱(APK)에서 동작합니다. 지금은 브라우저 모드입니다."; }
+  }
+  function fmtAgo(ms) { var s = Math.max(0, Math.round((Date.now() - ms) / 1000)); return s < 60 ? "방금" : s < 3600 ? Math.floor(s / 60) + "분 전" : s < 86400 ? Math.floor(s / 3600) + "시간 전" : Math.floor(s / 86400) + "일 전"; }
+  function refreshDrive() {
+    var st = document.getElementById("driveStatus"), on = window.Sync && Sync.enabled(), err = Settings.get("driveErr");
+    if (!window.Sync || !Sync.available()) { st.textContent = "구글 드라이브 동기화는 안드로이드 앱에서만 쓸 수 있습니다. 지금은 브라우저 모드입니다."; document.getElementById("driveConnect").hidden = true; return; }
+    document.getElementById("driveConnect").hidden = on; document.getElementById("driveNow").hidden = !on; document.getElementById("driveOff").hidden = !on;
+    st.textContent = (Sync.state.running ? "동기화 중..." : on ? "연결됨" + (Settings.get("driveLast") ? " · 마지막 동기화 " + fmtAgo(Settings.get("driveLast")) : "") : "연결되지 않았습니다.")
+      + (err && on ? " · 오류: " + err.msg : "");
   }
   function openSettings() {
     if (!onboardEl.hidden) { onboardEl.hidden = true; closeOverlayUI("onboard"); }
@@ -62,6 +72,28 @@
     btn.disabled = false; refreshSettings();
   });
   document.getElementById("profileInput").addEventListener("change", function () { Settings.set("profile", this.value.trim()); toast("직무 설명을 저장했습니다"); });
+
+  // 구글 드라이브 동기화
+  if (window.Sync) {
+    Sync.state.onState = function () { if (!settingsModalEl.hidden) refreshDrive(); };
+    Sync.onApplied(function () { loadTasks(); loadMeetings(); loadVocab(); if (window.Notify) window.Notify.sync(); });
+  }
+  document.getElementById("driveConnect").addEventListener("click", async function () {
+    var b = this; b.disabled = true; document.getElementById("driveStatus").textContent = "구글 계정에 연결하는 중...";
+    try { await Sync.connect(); toast("구글 드라이브와 동기화했습니다"); }
+    catch (e) { if (!e || e.code !== "CANCELED") toast((e && e.message) || "연결하지 못했습니다."); }
+    b.disabled = false; refreshDrive();
+  });
+  document.getElementById("driveNow").addEventListener("click", async function () {
+    var b = this; b.disabled = true;
+    try { await Sync.run({ interactive: false }); toast("동기화했습니다"); }
+    catch (e) { toast((e && e.message) || "동기화하지 못했습니다."); }
+    b.disabled = false; refreshDrive();
+  });
+  document.getElementById("driveOff").addEventListener("click", async function () {
+    var r = await askConfirm([{ title: "연결 해제", ok: "해제", danger: true, html: '<div class="cf-body">이 기기의 동기화를 끕니다. 이 기기의 데이터와 드라이브에 올라간 데이터는 지워지지 않고, 다른 기기와 더 이상 자동으로 맞춰지지 않습니다.</div>' }]);
+    if (r.ok) { await Sync.disconnect(); refreshDrive(); }
+  });
 
   // 알림(안드로이드 앱에서만)
   document.getElementById("notifyPerm").addEventListener("click", async function () {
@@ -99,7 +131,7 @@
   document.getElementById("wipeAll").addEventListener("click", async function () {
     var r = await askConfirm([
       { title: "모든 데이터 삭제", ok: "다음", html: '<div class="cf-body">할일 ' + DB.all("tasks").length + '건, 회의록 ' + DB.all("meetings").length + '건, 프로젝트, 용어 사전을 모두 지웁니다. API 키와 설정은 남습니다.</div>' },
-      { title: "정말 삭제할까요?", ok: "모두 삭제", danger: true, html: '<div class="cf-body"><span class="cf-warn">이 작업은 되돌릴 수 없습니다.</span> 필요하면 먼저 "백업 파일 저장"을 해 두세요.</div>' }]);
+      { title: "정말 삭제할까요?", ok: "모두 삭제", danger: true, html: '<div class="cf-body"><span class="cf-warn">이 작업은 되돌릴 수 없습니다.</span> 필요하면 먼저 "백업 파일 저장"을 해 두세요.' + (window.Sync && Sync.enabled() ? '<br><span class="cf-warn">구글 드라이브 동기화가 켜져 있어 다른 기기의 데이터도 함께 삭제됩니다.</span>' : '') + '</div>' }]);
     if (!r.ok) return;
     await DB.wipeData(); await loadTasks(); await loadMeetings(); await loadVocab(); refreshSettings(); toast("모든 데이터를 삭제했습니다"); if (window.Notify) window.Notify.sync();
   });
@@ -122,11 +154,43 @@
     } catch (e) { msg.textContent = aiMsg(e, "키를 확인하지 못했습니다."); updateObOk(); }
   });
 
+  // ---- 앱 업데이트 ----
+  function showUpdate(u) {
+    var b = document.getElementById("updateBanner");
+    if (!u) { b.hidden = true; return; }
+    document.getElementById("updateText").textContent = "새 버전 " + u.version + "이 있습니다 (현재 " + u.current + ")";
+    b.hidden = false;
+  }
+  async function checkUpdate(force) {
+    if (!window.Updater || !Updater.available()) return;
+    try { var u = await Updater.check(force); showUpdate(u); if (force) toast(u ? "새 버전 " + u.version + "이 있습니다" : "최신 버전입니다"); }
+    catch (e) { if (force) toast("업데이트를 확인하지 못했습니다."); }
+  }
+  document.getElementById("updateLater").addEventListener("click", function () { showUpdate(null); });
+  document.getElementById("updateGo").addEventListener("click", async function () {
+    var btn = this, txt = document.getElementById("updateText"), base = txt.textContent;
+    btn.disabled = true; txt.textContent = "내려받는 중... 0%";
+    try {
+      await Updater.install(function (pct) { txt.textContent = "내려받는 중... " + pct + "%"; });
+      txt.textContent = "설치 화면에서 '설치'를 눌러 주세요.";
+    } catch (e) {
+      txt.textContent = base;
+      toast(e && e.code === "NEED_PERMISSION" ? "설정에서 '이 출처 허용'을 켠 뒤, 돌아와서 업데이트를 다시 눌러 주세요." : ((e && e.message) || "업데이트하지 못했습니다."), null);
+    }
+    btn.disabled = false;
+  });
+  document.getElementById("updCheck").addEventListener("click", function () { checkUpdate(true); });
+
   function bootStandalone() {
     return DB.init().then(function () {
       restoreDraft();
       loadTasks(); loadMeetings(); loadVocab();
       nativeResume();
+      checkUpdate(false);
+      document.getElementById("updCheck").hidden = !(window.Updater && Updater.available());
+      DB.onChange(function () { Sync.schedule(); });
+      Sync.run().catch(function () {});
+      document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible") { Sync.run().catch(function () {}); checkUpdate(false); } });
       setTimeout(function () { if (!Settings.get("apiKey")) openOnboarding(); }, 500);
       if (window.Notify) { window.LocalApi.on("tasks", function () { window.Notify.sync(); }); window.Notify.init().then(function () { window.Notify.sync(); }); }
     }).catch(function (e) {
