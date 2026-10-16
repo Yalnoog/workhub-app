@@ -83,6 +83,12 @@ cut('<div class="notify-banner" id="installBanner" hidden>', '<div class="modal-
 
 cut('  document.getElementById("menuReload").addEventListener', '  document.getElementById("menuVocab").addEventListener')
 
+# --- 문구: 개인 저장 안내 / 예시에서 사람·프로젝트 이름 제거 ---
+sub1('이 서버(우리 집 홈서버)에만 데이터가 저장됩니다.', '데이터는 개별 모바일에 저장됩니다.')
+sub1('담당 김대리 / 견적 회신 대기', '담당 OOO / OOO 회신 대기')
+sub1('예: A라인 설비 개조 킥오프', '예: OOO 프로젝트 킥오프')
+sub1('예: A라인 설비 개조 (없으면', '예: OOO 프로젝트 (없으면')
+
 # --- CSS ---
 sub1('</style>\n</head>', '''.set-list { padding-bottom: 8px; }
 .set-sec { padding: 12px 0; border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px; }

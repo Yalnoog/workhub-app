@@ -481,12 +481,12 @@ footer.hint { color: var(--muted); font-size: 11px; text-align: center; padding-
         </div>
         <hr class="hr">
         <div class="row">
-          <div class="field"><label for="mTitle">회의명 (비우면 AI가 추정)</label><input id="mTitle" type="text" placeholder="예: A라인 설비 개조 킥오프" maxlength="120"></div>
+          <div class="field"><label for="mTitle">회의명 (비우면 AI가 추정)</label><input id="mTitle" type="text" placeholder="예: OOO 프로젝트 킥오프" maxlength="120"></div>
           <div class="field"><label for="mDate">일시</label><input id="mDate" type="date"></div>
           <div class="field"><label for="mKind">구분</label><select id="mKind"><option value="meeting">회의</option><option value="memo">메모</option></select></div>
         </div>
         <div class="field"><label for="userNotes">직접 적은 메모 (회의 중 내가 적는 요점·결정·담당자 등. AI 정리 때 음성보다 우선해 반영됩니다)</label>
-          <textarea id="userNotes" placeholder="예: 결정 - 10/12 포장 출하, 담당 김대리 / 견적 회신 대기"></textarea>
+          <textarea id="userNotes" placeholder="예: 결정 - 10/12 포장 출하, 담당 OOO / OOO 회신 대기"></textarea>
         </div>
         <div class="field"><label for="rawNotes">음성 변환 원문 (녹음·파일 변환 결과가 여기에 쌓입니다. 붙여넣기도 가능)</label>
           <textarea id="rawNotes" placeholder="녹음 결과를 여기에"></textarea>
@@ -549,7 +549,7 @@ footer.hint { color: var(--muted); font-size: 11px; text-align: center; padding-
   <button data-tab="calendar" id="tabBtnCalendar"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>캘린더</button>
 </div></nav>
 
-<footer class="hint">이 서버(우리 집 홈서버)에만 데이터가 저장됩니다.</footer>
+<footer class="hint">데이터는 개별 모바일에 저장됩니다.</footer>
 
 <script src="js/holidays-data.js"></script>
 <script src="js/localdb.js"></script>
@@ -1301,7 +1301,7 @@ footer.hint { color: var(--muted); font-size: 11px; text-align: center; padding-
   function editorHtml(d, o) {
     var h = '';
     h += '<div><label class="lbl">회의명</label><input type="text" data-f="title" value="'+esc(d.title||"")+'" maxlength="120"></div>';
-    h += '<div><label class="lbl">프로젝트 <span class="tag" data-projbadge></span></label><input type="text" data-f="project" list="projList" value="'+esc(d.project||"")+'" placeholder="예: A라인 설비 개조 (없으면 새로 만들어집니다)" maxlength="80"></div>';
+    h += '<div><label class="lbl">프로젝트 <span class="tag" data-projbadge></span></label><input type="text" data-f="project" list="projList" value="'+esc(d.project||"")+'" placeholder="예: OOO 프로젝트 (없으면 새로 만들어집니다)" maxlength="80"></div>';
     h += '<div><label class="lbl">한 줄 요약</label><input type="text" data-f="summary" value="'+esc(d.summary||"")+'" maxlength="120"></div>';
     if (o.withDate) h += '<div><label class="lbl">일시</label><input type="date" data-f="date" value="'+esc(d.date||"")+'"></div>';
     h += '<div><label class="lbl">참석자 (쉼표로 구분)</label><input type="text" data-f="participants" value="'+esc((d.participants||[]).join(", "))+'"></div>';
