@@ -75,6 +75,7 @@ cut('<div class="notify-banner" id="installBanner" hidden>', '<div class="modal-
       <section class="set-sec">
         <h4>앱 정보</h4>
         <div class="mdesc2" id="appInfo"></div>
+        <div class="mdesc2" id="widgetHint" hidden></div>
         <div class="set-row"><button type="button" class="ghost" id="updCheck" hidden>업데이트 확인</button><button type="button" class="danger" id="wipeAll">모든 데이터 삭제</button></div>
       </section>
     </div>
@@ -151,6 +152,7 @@ sub1('<script>\n(function () {\n  "use strict";\n  var API = "/api";',
 <script src="js/native.js"></script>
 <script src="js/sync.js"></script>
 <script src="js/updater.js"></script>
+<script src="js/widget.js"></script>
 <script>
 (function () {
   "use strict";''')

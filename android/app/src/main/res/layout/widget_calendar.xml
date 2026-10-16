@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/root" android:layout_width="match_parent" android:layout_height="match_parent"
+    android:orientation="vertical" android:background="@drawable/widget_bg" android:padding="10dp">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="34dp" android:orientation="horizontal" android:gravity="center_vertical">
+        <TextView android:id="@+id/prev" android:layout_width="40dp" android:layout_height="match_parent" android:gravity="center"
+            android:text="‹" android:textColor="@color/wg_fg" android:textSize="22sp" />
+        <TextView android:id="@+id/month_title" android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center"
+            android:textColor="@color/wg_fg" android:textSize="16sp" android:textStyle="bold" />
+        <TextView android:id="@+id/next" android:layout_width="40dp" android:layout_height="match_parent" android:gravity="center"
+            android:text="›" android:textColor="@color/wg_fg" android:textSize="22sp" />
+    </LinearLayout>
+    <LinearLayout android:layout_width="match_parent" android:layout_height="18dp" android:orientation="horizontal">
+        <TextView android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:text="일" android:textColor="@color/wg_red" android:textSize="11sp" />
+        <TextView android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:text="월" android:textColor="@color/wg_muted" android:textSize="11sp" />
+        <TextView android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:text="화" android:textColor="@color/wg_muted" android:textSize="11sp" />
+        <TextView android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:text="수" android:textColor="@color/wg_muted" android:textSize="11sp" />
+        <TextView android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:text="목" android:textColor="@color/wg_muted" android:textSize="11sp" />
+        <TextView android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:text="금" android:textColor="@color/wg_muted" android:textSize="11sp" />
+        <TextView android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:text="토" android:textColor="@color/wg_blue" android:textSize="11sp" />
+    </LinearLayout>
+    <GridView android:id="@+id/grid" android:layout_width="match_parent" android:layout_height="162dp"
+        android:numColumns="7" android:horizontalSpacing="0dp" android:verticalSpacing="0dp" android:stretchMode="columnWidth"
+        android:listSelector="@android:color/transparent" android:scrollbars="none" />
+    <TextView android:id="@+id/day_title" android:layout_width="match_parent" android:layout_height="26dp" android:gravity="center_vertical"
+        android:textColor="@color/wg_accent" android:textSize="13sp" android:textStyle="bold" />
+    <ListView android:id="@+id/day_list" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1"
+        android:divider="@color/wg_line" android:dividerHeight="1px" android:listSelector="@android:color/transparent" />
+    <TextView android:id="@+id/day_empty" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1"
+        android:gravity="center" android:text="일정이 없습니다" android:textColor="@color/wg_muted" android:textSize="12sp" />
+</LinearLayout>

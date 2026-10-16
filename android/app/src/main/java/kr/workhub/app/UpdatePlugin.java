@@ -26,7 +26,7 @@ public class UpdatePlugin extends Plugin {
             PackageInfo pi = getContext().getPackageManager().getPackageInfo(getContext().getPackageName(), 0);
             JSObject o = new JSObject();
             o.put("versionName", pi.versionName);
-            o.put("versionCode", (long) pi.getLongVersionCode());
+            o.put("versionCode", android.os.Build.VERSION.SDK_INT >= 28 ? pi.getLongVersionCode() : (long) pi.versionCode);
             call.resolve(o);
         } catch (Exception e) { call.reject("버전을 읽지 못했습니다."); }
     }
@@ -36,7 +36,7 @@ public class UpdatePlugin extends Plugin {
     public void install(final PluginCall call) {
         final String url = call.getString("url", "");
         if (!url.startsWith("https://github.com/") && !url.startsWith("https://objects.githubusercontent.com/")) { call.reject("허용되지 않은 주소입니다.", "BAD_URL"); return; }
-        if (!getContext().getPackageManager().canRequestPackageInstalls()) {
+        if (android.os.Build.VERSION.SDK_INT >= 26 && !getContext().getPackageManager().canRequestPackageInstalls()) {   // 안드로이드 8 미만은 앱별 허용이 없다
             Intent s = new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:" + getContext().getPackageName())).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             getContext().startActivity(s);
             call.reject("설치 허용이 필요합니다.", "NEED_PERMISSION");

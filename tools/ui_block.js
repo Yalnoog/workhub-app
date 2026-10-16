@@ -44,6 +44,8 @@
     }
     infoEl.textContent = "독립형 앱" + (APP_VERSION ? " v" + APP_VERSION : "") + " · 할일 " + DB.all("tasks").length + "건 · 회의록 " + DB.all("meetings").length + "건 · " + (window.Sync && Sync.enabled() ? "데이터는 이 기기와 내 구글 드라이브(앱 전용 폴더)에 저장됩니다." : "데이터는 이 기기에만 저장됩니다.");
     refreshDrive(); refreshNotifyPick();
+    var wh = document.getElementById("widgetHint");
+    if (window.WidgetSync && WidgetSync.available()) { wh.hidden = false; WidgetSync.count().then(function (n) { wh.textContent = "홈 화면을 길게 눌러 위젯(할일 목록, 캘린더)을 추가할 수 있습니다." + (n ? " 지금 " + n + "개가 놓여 있습니다." : ""); }); } else wh.hidden = true;
     document.getElementById("updCheck").hidden = !(window.Updater && Updater.available());
     var sec = document.getElementById("notifySec");
     if (window.Notify && window.Notify.isNative && window.Notify.isNative()) {
@@ -159,7 +161,7 @@
   if (window.Sync) {
     Sync.state.onState = function () { if (!settingsModalEl.hidden) refreshDrive(); };
     Sync.onApplied(function () {
-      loadTasks(); loadMeetings(); loadVocab(); if (window.Notify) window.Notify.sync();
+      loadTasks(); loadMeetings(); loadVocab(); if (window.Notify) window.Notify.sync(); WidgetSync.push();
       if (!settingsModalEl.hidden) refreshSettings();
       if (Settings.get("apiKey") && !onboardEl.hidden) { hideOnboard(); closeOverlayUI("onboard"); }   // 다른 기기에서 키가 넘어왔으면 첫 안내는 닫는다
     });
@@ -334,7 +336,8 @@
       checkUpdate(false);
       checkQuotaWarn(Settings.get("driveQuota"));
       document.getElementById("updCheck").hidden = !(window.Updater && Updater.available());
-      DB.onChange(function () { Sync.schedule(); });
+      DB.onChange(function () { Sync.schedule(); WidgetSync.push(); });
+      WidgetSync.push(true);
       Sync.run().catch(function () {});
       document.addEventListener("visibilitychange", function () {
         if (document.visibilityState === "visible") { Sync.run().catch(function () {}); checkUpdate(false); }

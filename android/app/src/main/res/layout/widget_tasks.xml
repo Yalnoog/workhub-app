@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/root" android:layout_width="match_parent" android:layout_height="match_parent"
+    android:orientation="vertical" android:background="@drawable/widget_bg" android:padding="12dp">
+    <LinearLayout android:id="@+id/header" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
+        <TextView android:id="@+id/title" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+            android:text="할일" android:textColor="@color/wg_fg" android:textSize="16sp" android:textStyle="bold" android:maxLines="1" />
+        <TextView android:id="@+id/summary" android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:textColor="@color/wg_muted" android:textSize="12sp" android:maxLines="1" />
+    </LinearLayout>
+    <ListView android:id="@+id/list" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1"
+        android:divider="@color/wg_line" android:dividerHeight="1px" android:listSelector="@android:color/transparent" android:layout_marginTop="6dp" />
+    <TextView android:id="@+id/empty" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1"
+        android:gravity="center" android:text="할일이 없습니다" android:textColor="@color/wg_muted" android:textSize="13sp" />
+</LinearLayout>

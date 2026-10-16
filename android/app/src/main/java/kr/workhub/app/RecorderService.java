@@ -79,7 +79,7 @@ public class RecorderService extends Service {
         @Override public void run() {
             if (!running) return;
             long sec = (System.currentTimeMillis() - startedAt) / 1000;
-            ((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).notify(NID, buildNotification(String.format("회의 녹음 중 · %02d:%02d", sec / 60, sec % 60)));
+            ((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).notify(NID, buildNotification(String.format(java.util.Locale.ROOT, "회의 녹음 중 · %02d:%02d", sec / 60, sec % 60)));
             h.postDelayed(this, 5000);
         }
     };

@@ -4,4 +4,8 @@
     <string name="title_activity_main">업무 워크벤치</string>
     <string name="package_name">kr.workhub.app</string>
     <string name="custom_url_scheme">kr.workhub.app</string>
+    <string name="widget_tasks_label">할일 목록</string>
+    <string name="widget_tasks_desc">전체 할일을 지연·오늘·가까운 순으로 보여 줍니다</string>
+    <string name="widget_calendar_label">캘린더</string>
+    <string name="widget_calendar_desc">날짜를 누르면 그날의 일정이 보입니다</string>
 </resources>

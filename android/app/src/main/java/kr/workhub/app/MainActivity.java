@@ -9,6 +9,7 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(RecorderPlugin.class);
         registerPlugin(UpdatePlugin.class);
         registerPlugin(GooglePlugin.class);
+        registerPlugin(WidgetPlugin.class);
         super.onCreate(savedInstanceState);
     }
 }

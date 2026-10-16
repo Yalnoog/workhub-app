@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="wg_bg">#FFFFFF</color>
+    <color name="wg_fg">#1B2A2A</color>
+    <color name="wg_muted">#587070</color>
+    <color name="wg_dim">#B7C4C4</color>
+    <color name="wg_accent">#0F766E</color>
+    <color name="wg_on_accent">#FFFFFF</color>
+    <color name="wg_red">#D14343</color>
+    <color name="wg_blue">#2563EB</color>
+    <color name="wg_amber">#B7791F</color>
+    <color name="wg_line">#D8E3E3</color>
+</resources>
