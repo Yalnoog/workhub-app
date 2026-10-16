@@ -1,0 +1,38 @@
+name: APK 빌드·배포
+# v0.1.0 같은 태그를 올리면 서명된 APK를 만들어 Releases에 첨부한다.
+on:
+  push:
+    tags: ["v*"]
+permissions:
+  contents: write
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 21 }
+      - uses: android-actions/setup-android@v3
+      - run: npm ci
+      - run: npx cap sync android
+      - name: 서명 키 준비
+        run: |
+          echo "${{ secrets.WH_KEYSTORE_B64 }}" | base64 -d > "$RUNNER_TEMP/workhub.jks"
+          echo "WH_KEYSTORE=$RUNNER_TEMP/workhub.jks" >> "$GITHUB_ENV"
+      - name: 릴리스 APK 빌드
+        working-directory: android
+        env:
+          WH_KS_PASS: ${{ secrets.WH_KS_PASS }}
+          WH_KEY_ALIAS: ${{ secrets.WH_KEY_ALIAS }}
+          WH_KEY_PASS: ${{ secrets.WH_KEY_PASS }}
+          WH_VERSION_NAME: ${{ github.ref_name }}
+          WH_VERSION_CODE: ${{ github.run_number }}
+        run: ./gradlew assembleRelease --no-daemon
+      - name: 파일 이름 정리
+        run: cp android/app/build/outputs/apk/release/app-release.apk "업무워크벤치-${{ github.ref_name }}.apk"
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: 업무워크벤치-*.apk
+          generate_release_notes: true

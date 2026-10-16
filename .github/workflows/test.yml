@@ -1,0 +1,12 @@
+name: 테스트
+on:
+  push:
+    branches: [main]
+  pull_request:
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: 화면·로직 테스트 (Gemini는 모의 응답)
+        run: bash tests/run.sh

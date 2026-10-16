@@ -1,0 +1,18 @@
+{
+  "name": "workhub-app",
+  "version": "0.1.0",
+  "private": true,
+  "description": "업무 워크벤치 - 할일·캘린더·회의록 (안드로이드 독립형 앱)",
+  "scripts": {
+    "sync": "cap sync android",
+    "test": "bash tests/run.sh"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.5.3",
+    "@capacitor/cli": "^8.5.3",
+    "@capacitor/core": "^8.5.3",
+    "@capacitor/filesystem": "^8.1.5",
+    "@capacitor/local-notifications": "^8.3.1",
+    "@capacitor/share": "^8.0.3"
+  }
+}

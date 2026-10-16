@@ -1,0 +1,9 @@
+{
+  "appId": "kr.workhub.app",
+  "appName": "업무 워크벤치",
+  "webDir": "www",
+  "android": { "allowMixedContent": false },
+  "plugins": {
+    "LocalNotifications": { "smallIcon": "ic_stat_icon", "iconColor": "#0f766e" }
+  }
+}
