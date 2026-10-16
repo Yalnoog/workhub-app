@@ -8,6 +8,7 @@
   var SYNCED = { tasks: 1, meetings: 1, projects: 1, vocab: 1 };
   var listeners = [], lastStamp = 0;
   function stamp() { lastStamp = Math.max(Date.now(), lastStamp + 1); return lastStamp; }   // 같은 밀리초에도 항상 증가
+  var USER_SETTINGS = ["profile", "notifyLeadMin", "notifyHour", "segmentMin"];
   var cache = {};
   var db = null;
 
@@ -72,7 +73,7 @@
       }
     });
     await done;
-    if (changed) listeners.forEach(function (f) { try { f(); } catch (e) {} });
+    if (changed || (opts && opts.notify)) listeners.forEach(function (f) { try { f(); } catch (e) {} });
   }
   function put(store, obj) { return batch([{ store: store, put: obj }]); }
   function del(store, id) { return batch([{ store: store, del: id }]); }
@@ -97,7 +98,7 @@
   function dump(includeKey) {
     var out = { app: "workhub-standalone", version: 1, exportedAt: new Date().toISOString(), data: {} };
     ["tasks", "meetings", "projects", "vocab", "settings"].forEach(function (s) {
-      out.data[s] = cache[s].filter(function (x) { return s !== "settings" || includeKey || x.key !== "apiKey"; });
+      out.data[s] = cache[s].filter(function (x) { return s !== "settings" ? true : (USER_SETTINGS.indexOf(x.key) >= 0 || (includeKey && x.key === "apiKey")); });
     });
     return out;
   }
@@ -106,12 +107,13 @@
     var keepKey = get("settings", "apiKey");
     var ops = [];
     ["tasks", "meetings", "projects", "vocab", "settings"].forEach(function (s) {
-      cache[s].slice().forEach(function (x) { if (!(s === "settings" && x.key === "apiKey")) ops.push({ store: s, del: x[STORES[s]] }); });
-      (obj.data[s] || []).forEach(function (x) { if (!(s === "settings" && x.key === "apiKey" && keepKey)) ops.push({ store: s, put: x }); });
+      cache[s].slice().forEach(function (x) { if (s !== "settings" || USER_SETTINGS.indexOf(x.key) >= 0) ops.push({ store: s, del: x[STORES[s]] }); });
+      (obj.data[s] || []).forEach(function (x) { if (s !== "settings" || USER_SETTINGS.indexOf(x.key) >= 0 || (x.key === "apiKey" && !keepKey)) ops.push({ store: s, put: x }); });
     });
     await batch(ops);
   }
 
   function onChange(f) { listeners.push(f); }
-  window.DB = { onChange: onChange, init: init, all: all, get: get, put: put, del: del, batch: batch, uid: uid, clearAll: clearAll, wipeData: wipeData, dump: dump, restore: restore };
+  function put2(store, obj, opts) { return batch([{ store: store, put: obj }], opts); }
+  window.DB = { stamp: stamp, put2: put2, onChange: onChange, init: init, all: all, get: get, put: put, del: del, batch: batch, uid: uid, clearAll: clearAll, wipeData: wipeData, dump: dump, restore: restore };
 })();

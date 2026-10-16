@@ -34,12 +34,13 @@ cut('<div class="notify-banner" id="installBanner" hidden>', '<div class="modal-
         <h4>Gemini API 키</h4>
         <div class="mdesc2" id="keyStatus"></div>
         <div class="set-row"><input id="keyInput" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="AIza... 로 시작하는 키 붙여넣기"><button type="button" class="primary" id="keySave">확인·저장</button></div>
-        <div class="mdesc2">키는 <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI Studio</a>에서 무료로 만들 수 있습니다. 이 기기에만 저장되며 어디에도 전송되지 않고, Google에 AI 요청을 보낼 때만 사용됩니다.</div>
+        <div class="mdesc2">키는 <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI Studio</a>에서 무료로 만들 수 있습니다. 기본적으로 이 기기에만 저장되며, Google에 AI 요청을 보낼 때만 사용됩니다.</div>
+        <label class="ob-agree"><input type="checkbox" id="syncKeyBox"><span>이 키를 구글 드라이브로 다른 기기와 동기화 <span class="mdesc2" id="syncKeyHint"></span></span></label>
       </section>
       <section class="set-sec">
         <h4>내 직무 설명 (선택)</h4>
         <input id="profileInput" type="text" maxlength="120" placeholder="예: 반도체 장비 제어 엔지니어">
-        <div class="mdesc2">회의록을 정리할 때 AI가 용어를 더 정확히 이해하도록 돕습니다.</div>
+        <div class="mdesc2">회의록을 정리할 때 AI가 용어를 더 정확히 이해하도록 돕습니다. 구글 드라이브 동기화를 켜면 다른 기기에도 같이 적용됩니다.</div>
       </section>
       <section class="set-sec" id="notifySec" hidden>
         <h4>마감일 알림</h4>

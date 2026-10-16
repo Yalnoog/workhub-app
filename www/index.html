@@ -362,12 +362,13 @@ footer.hint { color: var(--muted); font-size: 11px; text-align: center; padding-
         <h4>Gemini API 키</h4>
         <div class="mdesc2" id="keyStatus"></div>
         <div class="set-row"><input id="keyInput" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="AIza... 로 시작하는 키 붙여넣기"><button type="button" class="primary" id="keySave">확인·저장</button></div>
-        <div class="mdesc2">키는 <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI Studio</a>에서 무료로 만들 수 있습니다. 이 기기에만 저장되며 어디에도 전송되지 않고, Google에 AI 요청을 보낼 때만 사용됩니다.</div>
+        <div class="mdesc2">키는 <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI Studio</a>에서 무료로 만들 수 있습니다. 기본적으로 이 기기에만 저장되며, Google에 AI 요청을 보낼 때만 사용됩니다.</div>
+        <label class="ob-agree"><input type="checkbox" id="syncKeyBox"><span>이 키를 구글 드라이브로 다른 기기와 동기화 <span class="mdesc2" id="syncKeyHint"></span></span></label>
       </section>
       <section class="set-sec">
         <h4>내 직무 설명 (선택)</h4>
         <input id="profileInput" type="text" maxlength="120" placeholder="예: 반도체 장비 제어 엔지니어">
-        <div class="mdesc2">회의록을 정리할 때 AI가 용어를 더 정확히 이해하도록 돕습니다.</div>
+        <div class="mdesc2">회의록을 정리할 때 AI가 용어를 더 정확히 이해하도록 돕습니다. 구글 드라이브 동기화를 켜면 다른 기기에도 같이 적용됩니다.</div>
       </section>
       <section class="set-sec" id="notifySec" hidden>
         <h4>마감일 알림</h4>
@@ -1830,6 +1831,9 @@ footer.hint { color: var(--muted); font-size: 11px; text-align: center; padding-
     var k = Settings.get("apiKey");
     document.getElementById("keyStatus").textContent = k ? "설정됨 (" + maskKey(k) + ")" : "아직 설정되지 않았습니다. 회의록 정리·음성 받아쓰기·자유 입력에 필요합니다.";
     document.getElementById("profileInput").value = Settings.get("profile") || "";
+    var sk = document.getElementById("syncKeyBox"), driveOn = window.Sync && Sync.enabled();
+    sk.checked = !!Settings.get("syncKey") && driveOn; sk.disabled = !driveOn;
+    document.getElementById("syncKeyHint").textContent = driveOn ? "(켜면 키가 내 드라이브의 앱 전용 폴더에 저장됩니다)" : "(구글 드라이브 동기화를 먼저 연결해야 합니다)";
     var infoEl = document.getElementById("appInfo");
     if (!APP_VERSION && window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform() && Capacitor.Plugins.WorkhubUpdate) {
       Capacitor.Plugins.WorkhubUpdate.version().then(function (v) { APP_VERSION = String(v.versionName).replace(/^v/i, ""); infoEl.textContent = infoEl.textContent.replace("독립형 앱", "독립형 앱 v" + APP_VERSION); });
@@ -1870,12 +1874,32 @@ footer.hint { color: var(--muted); font-size: 11px; text-align: center; padding-
     catch (e) { st.textContent = aiMsg(e, "키를 확인하지 못했습니다."); btn.disabled = false; return; }
     btn.disabled = false; refreshSettings();
   });
+  document.getElementById("syncKeyBox").addEventListener("change", async function () {
+    var box = this, want = box.checked;
+    box.checked = !want;   // 확인을 받은 뒤에만 바꾼다
+    if (want) {
+      var r = await askConfirm([{ title: "API 키 동기화", ok: "켜기", html: '<div class="cf-body">API 키를 <b>내 구글 드라이브의 앱 전용 숨김 폴더</b>에 올려 다른 기기와 맞춥니다.<br><span class="cf-warn">구글 계정이 탈취되면 키도 함께 노출될 수 있습니다.</span> 이 기기에 키가 없으면 드라이브에 올라간 키를 받아 옵니다.</div>' }]);
+      if (!r.ok) return;
+      await Settings.set("syncKey", true); await Settings.remove("keyWipe");
+      var cur = Settings.raw("apiKey"); if (cur && cur.value) await Settings.set("apiKey", cur.value);   // 이 기기의 키를 최신으로 표시
+    } else {
+      var r2 = await askConfirm([{ title: "API 키 동기화 끄기", ok: "끄기", danger: true, html: '<div class="cf-body">드라이브에 올라간 키를 지웁니다. 각 기기에 저장된 키는 그대로 남습니다.</div>' }]);
+      if (!r2.ok) return;
+      await Settings.set("syncKey", false); await Settings.set("keyWipe", true);
+    }
+    try { await Sync.run({ interactive: false }); } catch (e) { toast((e && e.message) || "동기화하지 못했습니다."); }
+    refreshSettings();
+  });
   document.getElementById("profileInput").addEventListener("change", function () { Settings.set("profile", this.value.trim()); toast("직무 설명을 저장했습니다"); });
 
   // 구글 드라이브 동기화
   if (window.Sync) {
     Sync.state.onState = function () { if (!settingsModalEl.hidden) refreshDrive(); };
-    Sync.onApplied(function () { loadTasks(); loadMeetings(); loadVocab(); if (window.Notify) window.Notify.sync(); });
+    Sync.onApplied(function () {
+      loadTasks(); loadMeetings(); loadVocab(); if (window.Notify) window.Notify.sync();
+      if (!settingsModalEl.hidden) refreshSettings();
+      if (Settings.get("apiKey") && !onboardEl.hidden) { hideOnboard(); closeOverlayUI("onboard"); }   // 다른 기기에서 키가 넘어왔으면 첫 안내는 닫는다
+    });
   }
   document.getElementById("driveConnect").addEventListener("click", async function () {
     var b = this; b.disabled = true; document.getElementById("driveStatus").textContent = "구글 계정에 연결하는 중...";

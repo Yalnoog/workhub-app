@@ -52,4 +52,5 @@ def open_app(p, size="cover", key=True, handler=None, skip_onboard=True):
     if key:
         pg.evaluate("Settings.set('apiKey','AIzaTESTKEY00000000')")
     pg.wait_for_timeout(900)
+    if key and pg.locator("#onboardModal").is_visible(): pg.click("#obSkip"); pg.wait_for_timeout(300)   # 키를 넣기 전에 첫 안내가 먼저 뜬 경우
     return br, ctx, pg, errs

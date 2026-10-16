@@ -13,7 +13,12 @@
   // ---------- 순수 병합 (테스트 대상) ----------
   // local/remote: {stores:{tasks:[],...}, tombs:[{id,store,rid,t}]}. stamp: 새로 찍을 수정 시각(중복 프로젝트 정리용)
   function merge(local, remote, stamp) {
-    var out = { v: 1, stores: {}, tombs: [] }, tmap = {};
+    var out = { v: 1, stores: {}, tombs: [], settings: {} }, tmap = {};
+    // 설정: 키마다 수정 시각이 최신인 쪽. (value가 null이면 '삭제됨' 표시 - API 키 동기화를 끌 때 드라이브의 키를 지우는 데 쓴다)
+    [local, remote].forEach(function (s) {
+      var ss = (s && s.settings) || {};
+      Object.keys(ss).forEach(function (k) { var c = out.settings[k]; if (!c || (ss[k]._u || 0) > (c._u || 0)) out.settings[k] = ss[k]; });
+    });
     [local, remote].forEach(function (s) { ((s && s.tombs) || []).forEach(function (t) { if (!tmap[t.id] || tmap[t.id].t < t.t) tmap[t.id] = t; }); });
     STORES.forEach(function (st) {
       var m = {};
@@ -46,13 +51,18 @@
   }
 
   function canon(snap) {   // 같은 내용인지 비교하기 위한 정렬된 문자열
-    var o = { s: {}, t: (snap.tombs || []).map(function (x) { return x.id + "@" + x.t; }).sort() };
+    var o = { s: {}, set: Object.keys(snap.settings || {}).sort().map(function (k) { return k + "@" + (snap.settings[k]._u || 0) + ":" + (snap.settings[k].value == null ? "x" : "v"); }), t: (snap.tombs || []).map(function (x) { return x.id + "@" + x.t; }).sort() };
     STORES.forEach(function (st) { o.s[st] = ((snap.stores || {})[st] || []).map(function (r) { return r.id + "@" + (r._u || 0); }).sort(); });
     return JSON.stringify(o);
   }
 
   function localSnapshot() {
-    var s = { v: 1, stores: {}, tombs: window.DB.all("tombstones").slice() };
+    var s = { v: 1, stores: {}, tombs: window.DB.all("tombstones").slice(), settings: {} };
+    var S = window.Settings;
+    S.SYNC_KEYS.forEach(function (k) { var r = S.raw(k); if (r && r._u) s.settings[k] = { value: r.value, _u: r._u }; });
+    var ak = S.raw("apiKey");
+    if (S.get("syncKey")) { if (ak && ak.value) s.settings.apiKey = { value: ak.value, _u: ak._u || 0 }; }
+    else if (S.get("keyWipe")) s.settings.apiKey = { value: null, _u: window.DB.stamp() };   // 스위치를 끈 뒤 한 번, 드라이브에 올라간 키를 지운다
     STORES.forEach(function (st) { s.stores[st] = window.DB.all(st).slice(); });
     return s;
   }
@@ -71,6 +81,16 @@
     });
     var have = {}; window.DB.all("tombstones").forEach(function (t) { have[t.id] = t.t; });
     merged.tombs.forEach(function (t) { if (have[t.id] !== t.t) ops.push({ store: "tombstones", put: t }); });
+    // 설정 반영: 로컬보다 새로운 값만. apiKey는 스위치가 켜져 있고 값이 있을 때만(원격이 삭제 표시여도 이 기기의 키는 지우지 않는다)
+    var S = window.Settings, nset = 0;
+    Object.keys(merged.settings || {}).forEach(function (k) {
+      var rm = merged.settings[k], cur = S.raw(k);
+      if (!(S.SYNC_KEYS.indexOf(k) >= 0 || k === "apiKey")) return;
+      if (k === "apiKey" && (!S.get("syncKey") || rm.value == null)) return;
+      if (rm.value == null) return;
+      if (cur && (cur._u || 0) >= (rm._u || 0)) return;
+      ops.push({ store: "settings", put: { key: k, value: rm.value, _u: rm._u } }); nset++;
+    });
     await window.DB.batch(ops, { silent: true });
     return ops.length;
   }
@@ -129,6 +149,7 @@
     var merged = merge(local, remote, snapAt);
     var changed = await applyLocal(merged, snapAt);
     if (!remote || canon(remote) !== canon(merged)) await upload(f && f.id, merged, tok);
+    if (window.Settings.get("keyWipe") && !window.Settings.get("syncKey")) await window.Settings.remove("keyWipe");
     await window.Settings.set("driveLast", Date.now());
     await window.Settings.remove("driveErr");
     if (changed && applied) applied();
