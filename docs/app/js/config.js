@@ -1,3 +1,3 @@
 /* 배포 설정. 브라우저(웹) 버전의 구글 로그인에 쓰는 "웹 애플리케이션" OAuth 클라이언트 ID(공개 값, 비밀 아님).
  * 비어 있으면 웹 버전에서는 구글 드라이브 동기화 버튼이 숨겨진다. 안드로이드 앱은 이 값을 쓰지 않는다. */
-window.WEB_CLIENT_ID = window.WEB_CLIENT_ID || "";
+if (typeof window.WEB_CLIENT_ID === "undefined") window.WEB_CLIENT_ID = "482974240453-i3fpja6e4t957pqciqq6dvge5o2stat8.apps.googleusercontent.com";   // 테스트에서는 미리 덮어쓸 수 있다

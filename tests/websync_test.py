@@ -15,7 +15,7 @@ window.google = { accounts: { oauth2: { initTokenClient: function (cfg) { return
 
 def web_device(p, client_id="test.apps.googleusercontent.com"):
     br = p.chromium.launch(); ctx = br.new_context(viewport={"width": 1200, "height": 800}); errs = []
-    if client_id: ctx.add_init_script(f"window.WEB_CLIENT_ID = '{client_id}';")
+    ctx.add_init_script(f"window.WEB_CLIENT_ID = '{client_id}';")
     ctx.add_init_script(GIS)
     ctx.route("https://www.googleapis.com/**", drive_route)
     ctx.route("https://accounts.google.com/**", lambda r: r.fulfill(status=200, content_type="application/javascript", body="/* stub */"))
