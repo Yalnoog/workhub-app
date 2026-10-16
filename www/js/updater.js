@@ -3,7 +3,7 @@
 (function () {
   "use strict";
   var REPO = "Yalnoog/workhub-app";
-  var MIN_GAP = 30 * 60 * 1000;   // 자동 확인 간격(앱을 자주 열어도 GitHub 요청을 아끼기 위해)
+  var MIN_GAP = 60 * 1000;   // 앱을 열 때마다 확인하되, 시작 직후 이벤트가 겹쳐 두 번 조회되는 것만 막는다
 
   function C() { return window.Capacitor; }
   function P() { return C() && C().isNativePlatform && C().isNativePlatform() && C().Plugins && C().Plugins.WorkhubUpdate; }
@@ -12,9 +12,15 @@
   function cmp(a, b) { a = parse(a); b = parse(b); for (var i = 0; i < Math.max(a.length, b.length); i++) { var d = (a[i] || 0) - (b[i] || 0); if (d) return d < 0 ? -1 : 1; } return 0; }
 
   var latest = null;   // {version, url, notes}
+  var inflight = null;
 
-  async function check(force) {
-    if (!available()) return null;
+  function check(force) {
+    if (!available()) return Promise.resolve(null);
+    if (!inflight) inflight = doCheck(force).finally(function () { inflight = null; });   // 동시에 불려도 한 번만 조회
+    return inflight;
+  }
+
+  async function doCheck(force) {
     var last = Number(window.Settings.get("updChecked")) || 0;
     if (!force && Date.now() - last < MIN_GAP) return latest;
     var cur = (await P().version()).versionName;

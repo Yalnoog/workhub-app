@@ -25,9 +25,13 @@ with sync_playwright() as p:
     pg.evaluate("Settings.remove('updChecked')")
     pg.evaluate("window.__r = Updater.check(false)"); pg.wait_for_timeout(500)
     ok(calls["gh"] == 1 and pg.evaluate("Updater.latest.version") == "0.2.0" and pg.evaluate("Updater.latest.current") == "0.1.1", "새 버전을 감지")
-    # 열 때마다 확인하되 30분 안에는 GitHub을 다시 부르지 않음
+    # 열 때마다 확인하되 1분 안의 중복 호출은 한 번만
     pg.evaluate("Updater.check(false)"); pg.wait_for_timeout(300)
-    ok(calls["gh"] == 1, "30분 안에는 다시 조회하지 않음")
+    ok(calls["gh"] == 1, "1분 안의 중복 호출은 조회하지 않음")
+    pg.evaluate("Settings.set('updChecked', Date.now() - 120000)"); pg.evaluate("Updater.check(false)"); pg.wait_for_timeout(400)
+    ok(calls["gh"] == 2, "1분이 지나면 열 때마다 다시 확인")
+    pg.evaluate("Promise.all([Updater.check(true), Updater.check(true)])"); pg.wait_for_timeout(500)
+    ok(calls["gh"] == 3, f"동시에 두 번 불려도 조회는 한 번 ({calls['gh']})")
     # 화면: 배너 + 업데이트 실행
     pg.reload(); pg.wait_for_function("window.DB"); pg.evaluate(FAKE, "v0.1.1"); pg.evaluate("Settings.remove('updChecked')")
     pg.evaluate("document.dispatchEvent(new Event('visibilitychange'))"); pg.wait_for_timeout(800)
