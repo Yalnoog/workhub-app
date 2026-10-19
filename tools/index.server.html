@@ -893,11 +893,19 @@ footer.hint { color: var(--muted); font-size: 11px; text-align: center; padding-
     if (!e || (!e.tasks.length && !e.meets.length)) { box.innerHTML = html + '<div class="empty">이 날 일정이 없습니다.</div>'; return; }
     e.meets.sort(function(a, b){ return byTime(a.kind==="task"?a.t.dueTime:"", b.kind==="task"?b.t.dueTime:""); });
     e.tasks.sort(function(a, b){ return byTime(a.dueTime, b.dueTime); });
-    if (e.meets.length) {
-      html += '<div class="cal-sec"><span class="sq" style="width:8px;height:8px;border-radius:2px;background:var(--meet);display:inline-block"></span>회의 '+e.meets.length+'건</div>';
-      e.meets.forEach(function(x) {
-        if (x.kind === "task") html += '<div class="cal-item"><span class="sq"></span>'+timeSpan(x.t.dueTime)+'<span class="ctext">'+esc(x.t.title)+(x.t.status==="done"?" (완료)":"")+locInline(x.t)+'</span></div>';
-        else html += '<div class="cal-item"><span class="sq"></span>'+timeSpan("")+(x.m.kind==="memo"?"메모: ":"회의록: ")+esc(x.m.title||"제목 없음")+'</div>';
+    // 회의 소집('회의' 프로젝트 할일)과 회의록·메모를 따로 묶어 보여 준다
+    var calls = e.meets.filter(function(x){ return x.kind === "task"; }), recs = e.meets.filter(function(x){ return x.kind !== "task"; });
+    var sq = '<span class="sq" style="width:8px;height:8px;border-radius:2px;background:var(--meet);display:inline-block"></span>';
+    if (calls.length) {
+      html += '<div class="cal-sec">'+sq+'회의 소집 '+calls.length+'건</div>';
+      calls.forEach(function(x) {
+        html += '<div class="cal-item"><span class="sq"></span>'+timeSpan(x.t.dueTime)+'<span class="ctext">'+esc(x.t.title)+(x.t.status==="done"?" (완료)":"")+locInline(x.t)+'</span></div>';
+      });
+    }
+    if (recs.length) {
+      html += '<div class="cal-sec">'+sq+'회의록 '+recs.length+'건</div>';
+      recs.forEach(function(x) {
+        html += '<div class="cal-item"><span class="sq"></span><span class="ctext">'+(x.m.kind==="memo"?"메모: ":"")+esc(x.m.title||"제목 없음")+'</span></div>';
       });
     }
     if (e.tasks.length) {
