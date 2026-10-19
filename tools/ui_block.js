@@ -162,6 +162,7 @@
     Sync.state.onState = function () { if (!settingsModalEl.hidden) refreshDrive(); };
     Sync.onApplied(function () {
       loadTasks(); loadMeetings(); loadVocab(); if (window.Notify) window.Notify.sync(); WidgetSync.push();
+      refreshIdleHint();
       if (!settingsModalEl.hidden) refreshSettings();
       if (Settings.get("apiKey") && !onboardEl.hidden) { hideOnboard(); closeOverlayUI("onboard"); }   // 다른 기기에서 키가 넘어왔으면 첫 안내는 닫는다
     });
@@ -331,6 +332,7 @@
   function bootStandalone() {
     return DB.init().then(function () {
       restoreDraft();
+      refreshIdleHint();
       loadTasks(); loadMeetings(); loadVocab();
       nativeResume();
       checkUpdate(false);
@@ -359,9 +361,18 @@
     var C = window.Capacitor;
     return (C && C.isNativePlatform && C.isNativePlatform() && C.Plugins && C.Plugins.WorkhubRecorder) || null;
   }
+  // 받아쓰기 간격 표시("10분"). 시험용으로 1분 미만 값이면 초로 보여 준다
+  function segLabel() {
+    var m = Number(Settings.get("segmentMin")) || 10;
+    return m >= 1 ? (m % 1 === 0 ? m : m.toFixed(1)) + "분" : Math.max(1, Math.round(m * 60)) + "초";
+  }
+  function refreshIdleHint() {
+    var recording = (typeof rec !== "undefined" && (rec.active || rec.interrupted || rec.pending)) || NR.active || NR.busy || NR.left || NR.failed;
+    if (!recording && !document.getElementById("recStatus").querySelector(".thinking") && /받아쓰기합니다|녹음 버튼/.test(document.getElementById("recStatus").textContent)) setRecStatus(idleHint());
+  }
   function nativeStatus() {
     if (NR.failed) { setRecStatus('<b>' + NR.failed + '개 구간을 변환하지 못했습니다.</b> 녹음은 보관돼 있으니 <a href="#" id="retryNative">다시 변환</a>을 눌러 보세요.'); return; }
-    if (NR.active) { setRecStatus('녹음 중... 화면을 꺼도 계속됩니다. 다시 누르면 종료' + (NR.left ? ' · 변환 대기 ' + NR.left + '건' : '')); return; }
+    if (NR.active) { setRecStatus('녹음 중... ' + segLabel() + '마다 글로 변환되어 메모에 추가됩니다. 화면을 꺼도 계속됩니다.' + (NR.left ? ' · 변환 대기 ' + NR.left + '건' : '')); return; }
     if (NR.busy || NR.left) { setRecStatus('<span class="thinking"><span class="spinner"></span>변환 중... (' + NR.left + '건)</span>'); return; }
     setRecStatus('변환 완료. 메모에 추가됐습니다.');
   }

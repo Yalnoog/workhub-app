@@ -26,7 +26,7 @@ with sync_playwright() as p:
     if not pg.locator("#composer").evaluate("e=>e.open"): pg.click("#composer > summary")
     pg.click("#recBtn"); pg.wait_for_timeout(500)
     ok(pg.evaluate("window.__rec") is True and pg.evaluate("window.__seg") == 600, "네이티브 녹음 시작(조각 600초)")
-    ok(pg.locator("#recBtn.recording").count() == 1 and "화면을 꺼도" in pg.text_content("#recStatus"), "녹음 중 안내")
+    ok(pg.locator("#recBtn.recording").count() == 1 and "녹음 중... 10분마다 글로 변환되어 메모에 추가됩니다. 화면을 꺼도 계속됩니다." in pg.text_content("#recStatus"), f"녹음 중 안내: {pg.text_content('#recStatus')[:70]!r}")
     PULL = """async ([x, y0, y1]) => { const tgt = document.elementFromPoint(x, y0) || document.body;
       const mk = (type, y, end) => { const t = new Touch({ identifier: 1, target: tgt, clientX: x, clientY: y }); return new TouchEvent(type, { touches: end ? [] : [t], changedTouches: [t], bubbles: true, cancelable: true }); };
       tgt.dispatchEvent(mk('touchstart', y0)); for (let i = 1; i <= 8; i++) { tgt.dispatchEvent(mk('touchmove', y0 + (y1 - y0) * i / 8)); await new Promise(r => setTimeout(r, 16)); }

@@ -116,6 +116,11 @@ sub1('담당 김대리 / 견적 회신 대기', '담당 OOO / OOO 회신 대기'
 sub1('예: A라인 설비 개조 킥오프', '예: OOO 프로젝트 킥오프')
 sub1('예: A라인 설비 개조 (없으면', '예: OOO 프로젝트 (없으면')
 
+# --- 녹음 안내 문구: 받아쓰기 간격 안내 ---
+sub1('녹음 버튼을 눌러 시작 (화면을 켠 채로)', '10분마다 끊어서 받아쓰기합니다. 글은 10분 단위로 추가됩니다.')
+sub1("setRecStatus('녹음 중... 다시 누르면 종료' +", "setRecStatus('녹음 중... ' + segLabel() + '마다 글로 변환되어 메모에 추가됩니다. 화면을 켠 채로 두세요. 다시 누르면 종료' +")
+sub1("setRecStatus('변환 완료. 메모에 추가됐습니다.');\n  }", "setRecStatus('변환 완료. 메모에 추가됐습니다.');\n  }\n  function idleHint() { return segLabel() + '마다 끊어서 받아쓰기합니다. 글은 ' + segLabel() + ' 단위로 추가됩니다.'; }")
+
 # --- CSS ---
 sub1('</style>\n</head>', '''.set-list { padding-bottom: 8px; }
 .set-sec { padding: 12px 0; border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px; }
