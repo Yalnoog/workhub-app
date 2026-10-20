@@ -43,7 +43,7 @@
       Capacitor.Plugins.WorkhubUpdate.version().then(function (v) { APP_VERSION = String(v.versionName).replace(/^v/i, ""); infoEl.textContent = infoEl.textContent.replace("독립형 앱", "독립형 앱 v" + APP_VERSION); });
     }
     infoEl.textContent = "독립형 앱" + (APP_VERSION ? " v" + APP_VERSION : "") + " · 할일 " + DB.all("tasks").length + "건 · 회의록 " + DB.all("meetings").length + "건 · " + (window.Sync && Sync.enabled() ? "데이터는 이 기기와 내 구글 드라이브(앱 전용 폴더)에 저장됩니다." : "데이터는 이 기기에만 저장됩니다.");
-    refreshDrive(); refreshNotifyPick();
+    refreshDrive(); refreshNotifyPick(); refreshCal();
     var wh = document.getElementById("widgetHint");
     if (window.WidgetSync && WidgetSync.available()) { wh.hidden = false; WidgetSync.count().then(function (n) { wh.textContent = "홈 화면을 길게 눌러 위젯(할일 목록, 캘린더)을 추가할 수 있습니다." + (n ? " 지금 " + n + "개가 놓여 있습니다." : ""); }); } else wh.hidden = true;
     document.getElementById("updCheck").hidden = !(window.Updater && Updater.available());
@@ -65,6 +65,44 @@
       + (err && on ? " · 오류: " + err.msg : "");
     renderUsage(on ? Settings.get("driveQuota") : null);
   }
+  // ---- 구글 캘린더 내보내기 ----
+  function refreshCal() {
+    var sec = document.getElementById("calSec");
+    if (!window.GCal || !GCal.available()) { document.getElementById("calStatus").textContent = "구글 캘린더 내보내기는 안드로이드 앱에서만 쓸 수 있습니다."; ["calToggle", "calNow", "calMaskRow", "calGuide"].forEach(function (i) { document.getElementById(i).hidden = true; }); return; }
+    var on = GCal.enabled(), err = Settings.get("calErr"), last = Settings.get("calLast");
+    document.getElementById("calToggle").hidden = false; document.getElementById("calToggle").textContent = on ? "끄기" : "켜기";
+    document.getElementById("calToggle").className = on ? "ghost" : "primary";
+    document.getElementById("calNow").hidden = !on; document.getElementById("calMaskRow").hidden = !on; document.getElementById("calGuide").hidden = !(on || Settings.get("calId"));
+    document.getElementById("calMask").checked = !!Settings.get("calMask");
+    document.getElementById("calStatus").textContent = GCal.state.running ? "맞추는 중..." : on ? "켜짐" + (last ? " · 마지막으로 맞춘 시각 " + fmtAgo(last) : "") + (err ? " · 오류: " + err.msg : "")
+      : (err ? "오류: " + err.msg : "꺼져 있습니다. 켜면 구글 동의 화면이 한 번 나옵니다.");
+  }
+  if (window.GCal) GCal.state.onState = function () { if (!settingsModalEl.hidden) refreshCal(); };
+  document.getElementById("calToggle").addEventListener("click", async function () {
+    var b = this; b.disabled = true;
+    try {
+      if (!GCal.enabled()) {
+        document.getElementById("calStatus").textContent = "구글 캘린더에 연결하는 중...";
+        var r = await GCal.enable(); toast("구글 캘린더에 일정 " + r.total + "건을 맞췄습니다");
+      } else {
+        var c = await askConfirm([{ title: "구글 캘린더 내보내기 끄기", ok: "끄기", danger: true,
+          html: '<div class="cf-body">내보내기를 끕니다.</div><label class="ob-agree" style="margin:8px 0"><input type="radio" name="calDel" value="keep" checked><span><b>일정은 그대로 두기</b><br><span class="mdesc2">구글 캘린더의 "업무 워크벤치" 캘린더와 일정이 남습니다. 더 이상 갱신되지 않습니다.</span></span></label>'
+            + '<label class="ob-agree"><input type="radio" name="calDel" value="delete"><span><b>캘린더와 일정을 모두 삭제</b><br><span class="mdesc2 cf-warn">구글 캘린더에서 "업무 워크벤치" 캘린더가 삭제되고, 회사 캘린더에서도 일정이 사라집니다.</span></span></label>' }]);
+        if (c.ok) { await GCal.disable((c.data.calDel || "keep") === "delete"); toast("끄기를 완료했습니다"); }
+      }
+    } catch (e) { toast((e && e.message) || "처리하지 못했습니다."); }
+    b.disabled = false; refreshCal();
+  });
+  document.getElementById("calNow").addEventListener("click", async function () {
+    var b = this; b.disabled = true;
+    try { var r = await GCal.run({ interactive: false }); toast(r ? "맞췄습니다 (추가·수정 " + r.made + ", 삭제 " + r.removed + ")" : "맞출 내용이 없습니다"); }
+    catch (e) { toast((e && e.message) || "맞추지 못했습니다."); }
+    b.disabled = false; refreshCal();
+  });
+  document.getElementById("calMask").addEventListener("change", async function () {
+    await Settings.set("calMask", this.checked); GCal.schedule(0);
+  });
+
   // ---- 알림 시각 선택 ----
   var LEADS = [[0, "마감 시각 정각"], [5, "5분 전"], [10, "10분 전"], [15, "15분 전"], [30, "30분 전"], [60, "1시간 전"], [120, "2시간 전"], [180, "3시간 전"], [1440, "하루 전"]];
   function fillPick(sel, opts, cur) {
@@ -161,7 +199,7 @@
   if (window.Sync) {
     Sync.state.onState = function () { if (!settingsModalEl.hidden) refreshDrive(); };
     Sync.onApplied(function () {
-      loadTasks(); loadMeetings(); loadVocab(); if (window.Notify) window.Notify.sync(); WidgetSync.push();
+      loadTasks(); loadMeetings(); loadVocab(); if (window.Notify) window.Notify.sync(); WidgetSync.push(); if (window.GCal) GCal.schedule();
       refreshIdleHint();
       if (!settingsModalEl.hidden) refreshSettings();
       if (Settings.get("apiKey") && !onboardEl.hidden) { hideOnboard(); closeOverlayUI("onboard"); }   // 다른 기기에서 키가 넘어왔으면 첫 안내는 닫는다
@@ -262,6 +300,7 @@
       catch (e) { msg = (e && e.message) || "동기화하지 못했습니다."; }
     }
     await Promise.all([loadTasks(), loadMeetings(), loadVocab()]);
+    if (window.GCal && GCal.enabled()) { try { await GCal.run(); } catch (e) { msg = (e && e.message) || msg; } }
     checkUpdate(false);
     toast(msg);
   }
@@ -338,12 +377,13 @@
       checkUpdate(false);
       checkQuotaWarn(Settings.get("driveQuota"));
       document.getElementById("updCheck").hidden = !(window.Updater && Updater.available());
-      DB.onChange(function () { Sync.schedule(); WidgetSync.push(); });
+      DB.onChange(function () { Sync.schedule(); WidgetSync.push(); if (window.GCal) GCal.schedule(); });
+      if (window.GCal) GCal.run().catch(function () {});
       WidgetSync.push(true);
       Sync.run().catch(function () {});
       document.addEventListener("visibilitychange", function () {
-        if (document.visibilityState === "visible") { Sync.run().catch(function () {}); checkUpdate(false); }
-        else Sync.flush().catch(function () {});   // 다른 화면으로 넘어가는 순간 밀린 변경을 바로 올린다
+        if (document.visibilityState === "visible") { Sync.run().catch(function () {}); checkUpdate(false); if (window.GCal) GCal.maybeRun(); }
+        else { Sync.flush().catch(function () {}); if (window.GCal) GCal.flush().catch(function () {}); }   // 다른 화면으로 넘어가는 순간 밀린 변경을 바로 올린다
       });
       window.addEventListener("pagehide", function () { Sync.flush().catch(function () {}); });
       setTimeout(function () { if (!Settings.get("apiKey")) openOnboarding(); }, 500);

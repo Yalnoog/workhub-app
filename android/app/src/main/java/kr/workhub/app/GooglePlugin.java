@@ -29,7 +29,16 @@ public class GooglePlugin extends Plugin {
     @PluginMethod
     public void getToken(final PluginCall call) {
         final boolean interactive = Boolean.TRUE.equals(call.getBoolean("interactive", false));
-        AuthorizationRequest req = AuthorizationRequest.builder().setRequestedScopes(Collections.singletonList(new Scope(SCOPE))).build();
+        // scopes를 주면 그 권한으로(예: 캘린더), 안 주면 드라이브 앱 전용 폴더 권한으로 토큰을 받는다
+        java.util.List<Scope> scopes = new java.util.ArrayList<>();
+        com.getcapacitor.JSArray sc = call.getArray("scopes");
+        if (sc != null) {
+            for (int i = 0; i < sc.length(); i++) {
+                try { String s = sc.getString(i); if (s != null && s.startsWith("https://www.googleapis.com/auth/")) scopes.add(new Scope(s)); } catch (Exception ignore) {}
+            }
+        }
+        if (scopes.isEmpty()) scopes.add(new Scope(SCOPE));
+        AuthorizationRequest req = AuthorizationRequest.builder().setRequestedScopes(scopes).build();
         Identity.getAuthorizationClient(getActivity()).authorize(req)
             .addOnSuccessListener(result -> {
                 if (!result.hasResolution()) { resolveToken(call, result); return; }

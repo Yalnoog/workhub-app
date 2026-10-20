@@ -131,7 +131,8 @@
   function available() { return !!plugin() || !!webId(); }
   function SyncError(code, msg) { var e = new Error(msg); e.code = code; return e; }
 
-  var gisPromise = null, webTok = null;
+  var DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.appdata";
+  var gisPromise = null, webToks = {};   // 웹 토큰은 권한(scope)별로 보관
   function loadGis() {
     if (window.google && window.google.accounts && window.google.accounts.oauth2) return Promise.resolve();
     if (!gisPromise) gisPromise = new Promise(function (res, rej) {
@@ -141,20 +142,21 @@
     });
     return gisPromise;
   }
-  async function webToken(interactive) {
-    if (webTok && webTok.exp > Date.now() + 60000) return webTok.token;
+  async function webToken(interactive, scope) {
+    var cached = webToks[scope];
+    if (cached && cached.exp > Date.now() + 60000) return cached.token;
     await loadGis();
     return new Promise(function (resolve, reject) {
       var done = false, timer = setTimeout(function () { if (!done) { done = true; reject(SyncError("NEED_CONSENT", "구글 계정 연결이 필요합니다. '지금 동기화'를 눌러 다시 연결해 주세요.")); } }, interactive ? 120000 : 15000);
       function fail(code, msg) { if (done) return; done = true; clearTimeout(timer); reject(SyncError(code, msg)); }
       var client = window.google.accounts.oauth2.initTokenClient({
-        client_id: webId(), scope: "https://www.googleapis.com/auth/drive.appdata",
+        client_id: webId(), scope: scope,
         callback: function (r) {
           if (done) return;
           if (r.error) return fail(r.error === "access_denied" ? "CANCELED" : "NEED_CONSENT", r.error === "access_denied" ? "연결을 취소했습니다." : "구글 계정 연결이 필요합니다. '지금 동기화'를 눌러 다시 연결해 주세요.");
           done = true; clearTimeout(timer);
-          webTok = { token: r.access_token, exp: Date.now() + (Number(r.expires_in) || 3600) * 1000 };
-          resolve(webTok.token);
+          webToks[scope] = { token: r.access_token, exp: Date.now() + (Number(r.expires_in) || 3600) * 1000 };
+          resolve(webToks[scope].token);
         },
         error_callback: function (e) { fail(e && e.type === "popup_closed" ? "CANCELED" : "NEED_CONSENT", e && e.type === "popup_closed" ? "연결을 취소했습니다." : "구글 계정 연결이 필요합니다. '지금 동기화'를 눌러 다시 연결해 주세요."); },
       });
@@ -162,13 +164,14 @@
     });
   }
 
-  async function token(interactive) {
+  async function token(interactive, scope) {
+    scope = scope || DRIVE_SCOPE;
     var P = plugin();
     if (!P) {
-      if (!webId()) throw SyncError("NO_NATIVE", "구글 드라이브 동기화가 아직 설정되지 않았습니다.");
-      return webToken(interactive);
+      if (!webId()) throw SyncError("NO_NATIVE", "구글 연동이 아직 설정되지 않았습니다.");
+      return webToken(interactive, scope);
     }
-    try { return (await P.getToken({ interactive: !!interactive })).accessToken; }
+    try { return (await P.getToken({ interactive: !!interactive, scopes: [scope] })).accessToken; }
     catch (e) {
       var c = (e && e.code) || "";
       if (c === "NEED_CONSENT") throw SyncError("NEED_CONSENT", "구글 계정 연결이 필요합니다. 설정에서 다시 연결해 주세요.");
@@ -182,7 +185,7 @@
     if (res.status === 401 || res.status === 403) {
       var body = ""; try { body = await res.text(); } catch (e) {}
       if (/insufficient|scope|accessNotConfigured|has not been used|disabled/i.test(body)) throw SyncError("DRIVE_API", "구글 드라이브 API 설정이 완료되지 않았습니다. (" + res.status + ")");
-      webTok = null;
+      webToks = {};
       throw SyncError("AUTH", "구글 인증이 만료되었습니다. 설정에서 다시 연결해 주세요.");
     }
     if (!res.ok) throw SyncError("HTTP", "구글 드라이브 응답 오류 (" + res.status + ")");
@@ -284,7 +287,7 @@
   async function disconnect() { clearTimeout(timer); await window.Settings.set("driveOn", false); await window.Settings.remove("driveErr"); }
 
   window.Sync = {
-    available: available, isNative: function () { return !!plugin(); }, enabled: enabled, run: run, schedule: schedule, flush: flush, connect: connect, disconnect: disconnect, state: state,
+    getToken: token, SyncError: SyncError, available: available, isNative: function () { return !!plugin(); }, enabled: enabled, run: run, schedule: schedule, flush: flush, connect: connect, disconnect: disconnect, state: state,
     merge: merge, mergeBackup: mergeBackup, canon: canon, localSnapshot: localSnapshot, FILE: FILE,
     onApplied: function (fn) { applied = fn; },
     onUsage: function (fn) { usageCb = fn; }, refreshUsage: refreshUsage,
