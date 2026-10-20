@@ -36,7 +36,7 @@ with sync_playwright() as p:
     cid = next(iter(CAL["cals"]))
     ok(A.evaluate("Settings.get('calId')") == cid, "캘린더 ID 저장")
     ev = live()
-    ok(sorted(ev.keys()) == sorted([t1, t2, t5]), f"기한 있는 미완료 할일만 일정으로: {len(ev)}건 (기한 없음·완료 제외)")
+    ok(sorted(ev.keys()) == sorted([t1, t2, t4, t5]), f"기한 있는 할일만 일정으로(완료한 것 포함, 기한 없음 제외): {len(ev)}건")
     e1 = ev[t1]
     ok(e1["summary"] == "견적서 발송" and e1["location"] == "3층" and "프로젝트: A라인" in e1["description"], "제목·장소·프로젝트 전달")
     ok(e1["start"]["dateTime"] == "2030-05-01T14:30:00" and e1["end"]["dateTime"] == "2030-05-01T15:00:00" and e1["start"]["timeZone"] == "Asia/Seoul", f"시각 일정은 30분: {e1['start']} ~ {e1['end']}")
@@ -50,11 +50,13 @@ with sync_playwright() as p:
     ok(r["made"] == 0 and r["removed"] == 0 and len(writes()) == n, "달라진 것이 없으면 아무것도 쓰지 않음")
     patch(A, t1, title="견적서 발송(수정)"); n = len(writes()); r = run(A)
     ok(r["made"] == 1 and len(writes()) == n + 1 and live()[t1]["summary"] == "견적서 발송(수정)", "제목을 고치면 그 일정만 갱신")
-    # 2) 완료 -> 삭제, 다시 열기 -> 복원
+    # 2) 완료해도 일정은 그대로 남음
     patch(A, t1, status="done"); r = run(A)
-    ok(t1 not in live() and r["removed"] == 1, "완료하면 일정에서 삭제")
-    patch(A, t1, status="open"); r = run(A)
-    ok(t1 in live() and live()[t1]["summary"] == "견적서 발송(수정)", "완료를 되돌리면 같은 ID로 일정 복원")
+    ok(t1 in live() and r["removed"] == 0 and live()[t1]["summary"] == "견적서 발송(수정)", "완료해도 일정은 지워지지 않음")
+    patch(A, t1, title="완료 뒤 제목 수정"); r = run(A)
+    ok(live()[t1]["summary"] == "완료 뒤 제목 수정", "완료한 할일의 수정도 일정에 계속 반영")
+    patch(A, t1, status="open", title="견적서 발송(수정)"); r = run(A)
+    ok(live()[t1]["summary"] == "견적서 발송(수정)" and r["removed"] == 0, "완료를 되돌려도 일정은 그대로")
     # 3) 삭제, 기한 제거
     A.evaluate("id => LocalApi.request('/tasks/'+id,{method:'DELETE'})", t2); r = run(A)
     ok(t2 not in live(), "할일을 지우면 일정도 삭제")
@@ -70,6 +72,30 @@ with sync_playwright() as p:
     A.evaluate("Settings.set('calMask', false)"); r = run(A)
     ok(live()[t1]["summary"] == "견적서 발송(수정)", "가리기를 끄면 원래 제목으로")
     A.screenshot(path=f"{SHOTS}/gcal_settings.png")
+
+    # 종류별 켜기/끄기(화면의 체크 칸으로)
+    A.click("#settingsBtn") if A.locator("#settingsModal").is_hidden() else None
+    A.wait_for_timeout(300)
+    ok(A.locator("#calTasks").is_checked() and A.locator("#calMeets").is_checked(), "할일·회의 내보내기가 기본으로 켜져 있음")
+    mt = add(A, "정기 회의 소집", due="2030-08-01", dueTime="10:00", category="회의"); r = run(A)
+    ok(mt in live() and t1 in live(), "회의 소집도 내보냄")
+    A.uncheck("#calMeets"); A.wait_for_timeout(1500)
+    ok(mt not in live() and t1 in live(), "회의 끄기: 회의 소집 일정만 삭제되고 일반 할일은 유지")
+    A.check("#calMeets"); A.wait_for_timeout(1500)
+    ok(mt in live(), "회의 다시 켜기: 일정이 되살아남(삭제된 ID 복원)")
+    A.uncheck("#calTasks"); A.wait_for_timeout(1500)
+    ok(t1 not in live() and mt in live(), "할일 끄기: 일반 할일 일정만 삭제, 회의는 유지")
+    A.check("#calTasks"); A.wait_for_timeout(1500)
+    ok(t1 in live() and mt in live(), "둘 다 켜면 모두 복원")
+    ok(A.evaluate("Settings.get('calTasks')") is True and A.evaluate("Settings.get('calMeets')") is True, "선택 상태가 저장됨")
+    # 완료한 할일 정책: 오래된 완료는 새로 만들지 않고, 이미 있는 일정은 유지
+    old_done = add(A, "오래전 완료", due="2020-01-01"); patch(A, old_done, status="done"); r = run(A)
+    ok(old_done not in live(), "오래된(180일 초과) 완료 할일은 새로 만들지 않음")
+    old_open = add(A, "오래된 미완료", due="2020-01-02"); r = run(A)
+    ok(old_open in live(), "기한이 지난 미완료 할일은 일정으로 만듦")
+    patch(A, old_open, status="done"); r = run(A)
+    ok(old_open in live(), "이미 있던 일정은 오래된 완료 할일이어도 유지")
+    A.screenshot(path=f"{SHOTS}/gcal_options.png")
 
     # 5) 끄기: 일정 그대로 두기 / 캘린더 삭제
     A.evaluate("GCal.disable(false)")
@@ -101,7 +127,7 @@ with sync_playwright() as p:
     CAL["rate"] = 1; CAL["page"] = 2
     for i in range(5): add(A, f"추가{i}", due="2030-06-0%d" % (i + 1))
     r = run(A)
-    ok(len(live()) == len([t for t in A.evaluate("DB.all('tasks')") if t["due"] and t["status"] != "done"]) and "err" not in r, f"속도 제한(429)을 재시도로 넘기고 {len(live())}건 반영")
+    ok(len(live()) == len([t for t in A.evaluate("DB.all('tasks')") if t["due"] and not (t["status"] == "done" and t["due"] < "2020-06-01")]) and "err" not in r, f"속도 제한(429)을 재시도로 넘기고 {len(live())}건 반영")
     n = len(writes()); r = run(A)
     ok(r["made"] == 0 and len(writes()) == n, "여러 페이지로 나뉜 일정 목록도 올바로 비교(중복 생성 없음)")
     ok(not errsA, f"자바스크립트 오류 없음 {errsA}")

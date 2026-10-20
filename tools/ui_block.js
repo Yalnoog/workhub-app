@@ -68,12 +68,13 @@
   // ---- 구글 캘린더 내보내기 ----
   function refreshCal() {
     var sec = document.getElementById("calSec");
-    if (!window.GCal || !GCal.available()) { document.getElementById("calStatus").textContent = "구글 캘린더 내보내기는 안드로이드 앱에서만 쓸 수 있습니다."; ["calToggle", "calNow", "calMaskRow", "calGuide"].forEach(function (i) { document.getElementById(i).hidden = true; }); return; }
+    if (!window.GCal || !GCal.available()) { document.getElementById("calStatus").textContent = "구글 캘린더 내보내기는 안드로이드 앱에서만 쓸 수 있습니다."; ["calToggle", "calNow", "calOpts", "calGuide"].forEach(function (i) { document.getElementById(i).hidden = true; }); return; }
     var on = GCal.enabled(), err = Settings.get("calErr"), last = Settings.get("calLast");
     document.getElementById("calToggle").hidden = false; document.getElementById("calToggle").textContent = on ? "끄기" : "켜기";
     document.getElementById("calToggle").className = on ? "ghost" : "primary";
-    document.getElementById("calNow").hidden = !on; document.getElementById("calMaskRow").hidden = !on; document.getElementById("calGuide").hidden = !(on || Settings.get("calId"));
+    document.getElementById("calNow").hidden = !on; document.getElementById("calOpts").hidden = !on; document.getElementById("calGuide").hidden = !(on || Settings.get("calId"));
     document.getElementById("calMask").checked = !!Settings.get("calMask");
+    document.getElementById("calTasks").checked = Settings.get("calTasks") !== false; document.getElementById("calMeets").checked = Settings.get("calMeets") !== false;
     document.getElementById("calStatus").textContent = GCal.state.running ? "맞추는 중..." : on ? "켜짐" + (last ? " · 마지막으로 맞춘 시각 " + fmtAgo(last) : "") + (err ? " · 오류: " + err.msg : "")
       : (err ? "오류: " + err.msg : "꺼져 있습니다. 켜면 구글 동의 화면이 한 번 나옵니다.");
   }
@@ -102,6 +103,8 @@
   document.getElementById("calMask").addEventListener("change", async function () {
     await Settings.set("calMask", this.checked); GCal.schedule(0);
   });
+  document.getElementById("calTasks").addEventListener("change", async function () { await Settings.set("calTasks", this.checked); GCal.schedule(0); });
+  document.getElementById("calMeets").addEventListener("change", async function () { await Settings.set("calMeets", this.checked); GCal.schedule(0); });
 
   // ---- 알림 시각 선택 ----
   var LEADS = [[0, "마감 시각 정각"], [5, "5분 전"], [10, "10분 전"], [15, "15분 전"], [30, "30분 전"], [60, "1시간 전"], [120, "2시간 전"], [180, "3시간 전"], [1440, "하루 전"]];

@@ -14,7 +14,7 @@
     return DEFAULTS[key];
   }
   // 기기 간 동기화 대상 설정(값이 바뀌면 수정 시각 _u를 찍고 동기화를 예약한다). apiKey는 사용자가 스위치를 켠 경우에만 올라간다.
-  var SYNC_KEYS = ["profile", "notifyLeadMin", "notifyHour", "segmentMin", "calId", "calMask"];   // calId: 폰·태블릿이 같은 구글 캘린더를 쓰도록
+  var SYNC_KEYS = ["profile", "notifyLeadMin", "notifyHour", "segmentMin", "calId", "calMask", "calTasks", "calMeets"];   // calId: 폰·태블릿이 같은 구글 캘린더를 쓰도록
   function syncable(key) { return SYNC_KEYS.indexOf(key) >= 0 || key === "apiKey"; }
   function set(key, value) {
     var rec = { key: key, value: value };

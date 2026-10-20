@@ -70,7 +70,11 @@ cut('<div class="notify-banner" id="installBanner" hidden>', '<div class="modal-
         <h4>구글 캘린더로 일정 내보내기 (회사 캘린더 연동용)</h4>
         <div class="mdesc2" id="calStatus"></div>
         <div class="set-row"><button type="button" class="primary" id="calToggle">켜기</button><button type="button" class="ghost" id="calNow" hidden>지금 맞추기</button></div>
-        <label class="ob-agree" id="calMaskRow" hidden><input type="checkbox" id="calMask"><span>제목 가리기 <span class="mdesc2">(제목·장소·프로젝트를 빼고 "일정"과 시간만 보냅니다)</span></span></label>
+        <div id="calOpts" hidden>
+          <label class="ob-agree"><input type="checkbox" id="calTasks"><span>할일 내보내기 <span class="mdesc2">(끄면 구글 캘린더에서 해당 일정이 삭제됩니다)</span></span></label>
+          <label class="ob-agree"><input type="checkbox" id="calMeets"><span>회의 내보내기 <span class="mdesc2">('회의' 프로젝트로 분류된 할일. 끄면 해당 일정이 삭제됩니다)</span></span></label>
+          <label class="ob-agree" id="calMaskRow"><input type="checkbox" id="calMask"><span>제목 가리기 <span class="mdesc2">(제목·장소·프로젝트를 빼고 "일정"과 시간만 보냅니다)</span></span></label>
+        </div>
         <div class="mdesc2" id="calGuide" hidden>
           <b>회사 캘린더에 연결하는 방법 (처음 한 번, PC 브라우저)</b><br>
           1. 구글 캘린더(calendar.google.com) → ⚙ 설정 → 왼쪽 <b>"업무 워크벤치"</b> 캘린더 클릭<br>
@@ -78,7 +82,7 @@ cut('<div class="notify-banner" id="installBanner" hidden>', '<div class="modal-
           3. 그 주소를 회사 캘린더의 외부 캘린더 URL 칸에 등록<br>
           <a href="https://calendar.google.com/calendar/u/0/r/settings" target="_blank" rel="noopener">구글 캘린더 설정 열기</a>
         </div>
-        <div class="mdesc2">기한이 있는 미완료 할일을 앱이 만든 보조 캘린더의 일정으로 맞춥니다(시각이 있으면 30분, 없으면 종일). 완료하거나 지운 할일은 일정에서도 사라집니다. 앱은 이 보조 캘린더만 다루며 기본 캘린더나 다른 일정은 읽거나 바꾸지 못합니다. 비공개 주소를 아는 사람은 일정을 볼 수 있으니 주소를 공유하지 마세요.</div>
+        <div class="mdesc2">기한이 있는 할일을 앱이 만든 보조 캘린더의 일정으로 맞춥니다(시각이 있으면 30분, 없으면 종일). 완료한 할일도 일정에 그대로 남고, 할일을 지우거나 기한을 지우면 일정에서 사라집니다. 앱은 이 보조 캘린더만 다루며 기본 캘린더나 다른 일정은 읽거나 바꾸지 못합니다. 비공개 주소를 아는 사람은 일정을 볼 수 있으니 주소를 공유하지 마세요.</div>
       </section>
       <section class="set-sec">
         <h4>백업</h4>

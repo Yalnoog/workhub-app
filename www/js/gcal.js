@@ -1,4 +1,4 @@
-/* 구글 캘린더 내보내기(안드로이드 앱 전용). 기한이 있는 미완료 할일을 앱이 만든 보조 캘린더("업무 워크벤치")의 일정으로 맞춰 둔다.
+/* 구글 캘린더 내보내기(안드로이드 앱 전용). 기한이 있는 할일(완료한 것 포함)을 앱이 만든 보조 캘린더("업무 워크벤치")의 일정으로 맞춰 둔다.
  * 그 캘린더의 "iCal 형식 비공개 주소"를 회사 캘린더에 등록하면 회사 캘린더에도 보인다(주소는 사용자가 구글 캘린더 설정에서 한 번 복사).
  * 권한은 앱이 만든 캘린더만 다루는 calendar.app.created 하나뿐이다(기본 캘린더·다른 캘린더는 읽지도 쓰지도 못한다).
  * 방식: 기기에 상태를 두지 않고 [캘린더의 현재 일정 목록 ↔ 지금 할일]을 비교해 다른 것만 만들고·고치고·지운다 → 폰·태블릿이 함께 써도 중복되지 않는다.
@@ -53,11 +53,21 @@
     ev.extendedProperties = { private: { wh: "1", sig: sig } };
     return ev;
   }
-  function desiredEvents(tasks, tz, mask, durMin) {
-    var out = {};
+  // 회의 소집 = '회의' 프로젝트로 분류된 할일(캘린더 화면과 같은 기준)
+  function isMeetTask(t) { return window.AI.normName(t.category) === "회의"; }
+  // opts: { tasks:일반 할일 내보내기, meets:회의 소집 내보내기, have:{일정ID:서명}(이미 캘린더에 있는 일정), today:"YYYY-MM-DD", doneDays:새로 만들 완료 할일의 기한 범위 }
+  // 완료한 할일도 일정에 그대로 남긴다. 이미 있는 일정은 오래된 완료 할일이어도 유지하고, 새로 만드는 완료 할일만 최근 doneDays일 이내로 제한한다(과거 기록이 한꺼번에 쏟아지지 않게).
+  function desiredEvents(tasks, tz, mask, durMin, opts) {
+    opts = opts || {};
+    var out = {}, have = opts.have || {}, kinds = { tasks: opts.tasks !== false, meets: opts.meets !== false };
+    var cutoff = "";
+    if (opts.today) { var p = opts.today.split("-"), c = new Date(Date.UTC(+p[0], +p[1] - 1, +p[2] - (opts.doneDays || 180))); cutoff = c.getUTCFullYear() + "-" + pad(c.getUTCMonth() + 1) + "-" + pad(c.getUTCDate()); }
     tasks.forEach(function (t) {
-      if (!t.due || !/^\d{4}-\d{2}-\d{2}$/.test(t.due) || t.status === "done") return;
-      var ev = toEvent(t, tz, mask, durMin); out[ev.id] = ev;
+      if (!t.due || !/^\d{4}-\d{2}-\d{2}$/.test(t.due)) return;
+      if (isMeetTask(t) ? !kinds.meets : !kinds.tasks) return;
+      var ev = toEvent(t, tz, mask, durMin);
+      if (t.status === "done" && !(ev.id in have) && cutoff && t.due < cutoff) return;
+      out[ev.id] = ev;
     });
     return out;
   }
@@ -143,8 +153,9 @@
     });
     var calId = await ensureCalendar(tok, !!opts.create);
     var tz = S().get("calTz") || "Asia/Seoul", mask = !!S().get("calMask");
-    var want = desiredEvents(window.DB.all("tasks"), tz, mask, Number(S().get("calDuration")) || cfg.durationMin);
     var have = await listEvents(calId, tok), made = 0, removed = 0;
+    var want = desiredEvents(window.DB.all("tasks"), tz, mask, Number(S().get("calDuration")) || cfg.durationMin,
+      { tasks: S().get("calTasks") !== false, meets: S().get("calMeets") !== false, have: have, today: window.AI.today(), doneDays: 180 });
     var ids = Object.keys(have);
     for (var i = 0; i < ids.length; i++) if (!want[ids[i]]) { await remove(calId, ids[i], tok); removed++; }
     var wk = Object.keys(want);
@@ -197,5 +208,5 @@
   }
 
   window.GCal = { available: available, enabled: enabled, run: run, schedule: schedule, flush: flush, maybeRun: maybeRun, enable: enable, disable: disable, state: state,
-    cfg: cfg, SCOPE: SCOPE, NAME: NAME, toEvent: toEvent, desiredEvents: desiredEvents, eventId: eventId, addMinutes: addMinutes };
+    cfg: cfg, SCOPE: SCOPE, NAME: NAME, toEvent: toEvent, isMeetTask: isMeetTask, desiredEvents: desiredEvents, eventId: eventId, addMinutes: addMinutes };
 })();
