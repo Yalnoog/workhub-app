@@ -8,23 +8,23 @@
   }
   function aiFail(err) { toast(aiMsg(err, "AI 처리에 실패했습니다.")); keyHint(err); }
 
-  // 작성 중인 회의록(회의명·직접 메모·음성 원문)을 자동으로 임시저장해서 앱이 꺼져도 사라지지 않게 한다
+  // 작성 중인 회의록(회의명·참석자·직접 메모·음성 원문)을 자동으로 임시저장해서 앱이 꺼져도 사라지지 않게 한다
   var draftTimer = null;
   function saveDraft() {
     clearTimeout(draftTimer);
     draftTimer = setTimeout(function () {
-      var d = { title: document.getElementById("mTitle").value, notes: document.getElementById("userNotes").value, raw: document.getElementById("rawNotes").value };
-      if (!d.title && !d.notes && !d.raw) Settings.remove("draft"); else Settings.set("draft", d);
+      var d = { title: document.getElementById("mTitle").value, notes: document.getElementById("userNotes").value, raw: document.getElementById("rawNotes").value, people: document.getElementById("mParticipants").value };
+      if (!d.title && !d.notes && !d.raw && !d.people) Settings.remove("draft"); else Settings.set("draft", d);
     }, 500);
   }
   function clearDraft() { clearTimeout(draftTimer); Settings.remove("draft"); }
   function restoreDraft() {
     var d = Settings.get("draft");
     if (d && typeof d === "object") {
-      document.getElementById("mTitle").value = d.title || ""; document.getElementById("userNotes").value = d.notes || ""; document.getElementById("rawNotes").value = d.raw || "";
+      document.getElementById("mTitle").value = d.title || ""; document.getElementById("userNotes").value = d.notes || ""; document.getElementById("rawNotes").value = d.raw || ""; document.getElementById("mParticipants").value = d.people || "";
     }
   }
-  ["mTitle", "userNotes", "rawNotes"].forEach(function (id) { document.getElementById(id).addEventListener("input", saveDraft); });
+  ["mTitle", "userNotes", "rawNotes", "mParticipants"].forEach(function (id) { document.getElementById(id).addEventListener("input", saveDraft); });
 
   // ---- 설정 창 ----
   var settingsModalEl = document.getElementById("settingsModal");

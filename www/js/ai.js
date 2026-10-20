@@ -157,15 +157,24 @@
       + "성격이 다른 일반 회의/잡담은 '기타'로 분류하세요.\n";
   }
 
-  function buildStructurePrompt(raw, names, title, notes) {
+  // "김OO, 이OO" 같은 입력을 이름 목록으로(쉼표·가운뎃점·세미콜론·줄바꿈 구분, 중복 제거)
+  function parsePeople(v) {
+    var list = Array.isArray(v) ? v : String(v || "").split(/[,，、;\n·]+/), seen = {}, out = [];
+    list.forEach(function (x) { x = String(x).trim(); var k = normName(x); if (x && !seen[k]) { seen[k] = 1; out.push(x.slice(0, 40)); } });
+    return out.slice(0, 40);
+  }
+
+  function buildStructurePrompt(raw, names, title, notes, people) {
     var terms = vocabTerms();
     var glossary = terms.length ? "이 회의에서 쓰이는 전문 용어(표기를 정확히 이 형태로 쓰세요): " + terms.join(", ") + "\n" : "";
+    people = people || [];
+    var peopleHint = people.length ? "참석자는 사용자가 이미 입력했습니다: " + people.join(", ") + ". participants에는 이 사람들을 모두 포함하고, 글에 다른 참석자가 분명히 나오면 추가하세요. 이 이름들의 표기를 정확히 이 형태로 쓰고, 음성 인식 오류로 비슷하게 잘못 적힌 이름은 이 표기로 바로잡으세요.\n" : "";
     var titleHint = title ? "회의명은 사용자가 '" + title + "'(으)로 정했습니다. title에는 이 값을 그대로 쓰고, 이 이름을 참고해 내용을 해석하세요.\n" : "";
     var both = !!(notes && raw);
     var input = both ? "[음성 변환 원문]\n\"\"\"\n" + raw + "\n\"\"\"\n\n[직접 메모]\n\"\"\"\n" + notes + "\n\"\"\"\n\n"
       : notes ? "[직접 메모]\n\"\"\"\n" + notes + "\n\"\"\"\n\n"
       : "메모:\n\"\"\"\n" + raw + "\n\"\"\"\n\n";
-    return glossary + titleHint
+    return glossary + titleHint + peopleHint
       + "다음은 " + who() + "가 회사 회의에서 두서없이 적었거나 음성 인식으로 받아적은 메모입니다. 이 메모를 분석해서 정리된 회의록을 JSON으로 만들어주세요. "
       + "메모에 없는 내용은 지어내지 말고, 모르는 항목은 빈 값으로 두세요.\n"
       + (both ? "입력은 두 가지입니다. [음성 변환 원문]은 음성 인식 결과라 오인식·누락이 있을 수 있고, [직접 메모]는 사용자가 직접 적은 정확한 내용입니다. "
@@ -217,8 +226,11 @@
   }
 
   async function structureMeeting(body, names) {
-    var data = applyVocabDeep(await callJson(buildStructurePrompt(applyVocab((body.raw || "").trim()), names, (body.title || "").trim(), (body.notes || "").trim()), "회의록 정리"));
+    var people = parsePeople(body.participants);
+    var data = applyVocabDeep(await callJson(buildStructurePrompt(applyVocab((body.raw || "").trim()), names, (body.title || "").trim(), (body.notes || "").trim(), people), "회의록 정리"));
     if ((body.title || "").trim()) data.title = body.title.trim();
+    // 참석자: 사용자가 입력한 이름을 앞에 두고, AI가 글에서 더 찾은 이름을 뒤에 붙인다(중복 제거). 미리보기에서 고칠 수 있다.
+    data.participants = parsePeople(people.concat(Array.isArray(data.participants) ? data.participants : []));
     var proj = String(data.project || "").trim();
     for (var i = 0; i < names.length; i++) if (normName(names[i]) === normName(proj)) { proj = names[i]; break; }
     data.project = proj; data.projectIsNew = !!proj && names.indexOf(proj) < 0;

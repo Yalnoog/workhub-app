@@ -323,6 +323,7 @@ footer.hint { color: var(--muted); font-size: 11px; text-align: center; padding-
   .cal-day-list { margin-top: 0; }
   table.sheet { min-width: 440px; }
 }
+#mParticipants { width: 100%; }
 .sx-wrap { display: flex; flex-direction: column; gap: 8px; margin: 4px 0 10px; }
 .sx-box { position: relative; }
 .sx-box input { width: 100%; padding: 11px 40px 11px 38px; font-size: 15px; }
@@ -535,6 +536,7 @@ mark { background: rgba(250, 204, 21, .5); color: inherit; border-radius: 3px; p
           <div class="field"><label for="mDate">일시</label><input id="mDate" type="date"></div>
           <div class="field"><label for="mKind">구분</label><select id="mKind"><option value="meeting">회의</option><option value="memo">메모</option></select></div>
         </div>
+        <div class="field"><label for="mParticipants">참석자 (쉼표로 구분, 선택)</label><input id="mParticipants" type="text" placeholder="예: 김OO, 이OO" maxlength="300" autocomplete="off"></div>
         <div class="field"><label for="userNotes">직접 적은 메모 (회의 중 내가 적는 요점·결정·담당자 등. AI 정리 때 음성보다 우선해 반영됩니다)</label>
           <textarea id="userNotes" placeholder="예: 결정 - 10/12 포장 출하, 담당 OOO / OOO 회신 대기"></textarea>
         </div>
@@ -1553,7 +1555,7 @@ mark { background: rgba(250, 204, 21, .5); color: inherit; border-radius: 3px; p
     document.getElementById("preview").hidden = true; document.getElementById("saveRow").hidden = true;
     try {
       var userTitle = document.getElementById("mTitle").value.trim();
-      var data = await api("/structure", { method:"POST", body: JSON.stringify({ raw: raw, notes: userNotes, title: userTitle }) });
+      var data = await api("/structure", { method:"POST", body: JSON.stringify({ raw: raw, notes: userNotes, title: userTitle, participants: document.getElementById("mParticipants").value }) });
       lastStructured = data;
       if (userTitle) lastStructured.title = userTitle;   // 직접 입력한 회의명이 AI 제안보다 우선
       renderPreview(lastStructured);
@@ -1583,7 +1585,7 @@ mark { background: rgba(250, 204, 21, .5); color: inherit; border-radius: 3px; p
       for (var i=0;i<toKeep.length;i++) { var a = toKeep[i];
         await api("/tasks", { method:"POST", body: JSON.stringify({ title:a.text, due:a.due||"", priority:"mid", category:(v.project || ("회의: "+meetingTitle)) }) });
       }
-      document.getElementById("mTitle").value = ""; document.getElementById("mDate").value = ""; document.getElementById("rawNotes").value = ""; document.getElementById("userNotes").value = "";
+      document.getElementById("mTitle").value = ""; document.getElementById("mDate").value = ""; document.getElementById("rawNotes").value = ""; document.getElementById("userNotes").value = ""; document.getElementById("mParticipants").value = "";
       document.getElementById("preview").hidden = true; document.getElementById("saveRow").hidden = true;
       document.getElementById("aiStatus").textContent = "";
       document.getElementById("composer").open = isWide();
@@ -1975,23 +1977,23 @@ mark { background: rgba(250, 204, 21, .5); color: inherit; border-radius: 3px; p
   }
   function aiFail(err) { toast(aiMsg(err, "AI 처리에 실패했습니다.")); keyHint(err); }
 
-  // 작성 중인 회의록(회의명·직접 메모·음성 원문)을 자동으로 임시저장해서 앱이 꺼져도 사라지지 않게 한다
+  // 작성 중인 회의록(회의명·참석자·직접 메모·음성 원문)을 자동으로 임시저장해서 앱이 꺼져도 사라지지 않게 한다
   var draftTimer = null;
   function saveDraft() {
     clearTimeout(draftTimer);
     draftTimer = setTimeout(function () {
-      var d = { title: document.getElementById("mTitle").value, notes: document.getElementById("userNotes").value, raw: document.getElementById("rawNotes").value };
-      if (!d.title && !d.notes && !d.raw) Settings.remove("draft"); else Settings.set("draft", d);
+      var d = { title: document.getElementById("mTitle").value, notes: document.getElementById("userNotes").value, raw: document.getElementById("rawNotes").value, people: document.getElementById("mParticipants").value };
+      if (!d.title && !d.notes && !d.raw && !d.people) Settings.remove("draft"); else Settings.set("draft", d);
     }, 500);
   }
   function clearDraft() { clearTimeout(draftTimer); Settings.remove("draft"); }
   function restoreDraft() {
     var d = Settings.get("draft");
     if (d && typeof d === "object") {
-      document.getElementById("mTitle").value = d.title || ""; document.getElementById("userNotes").value = d.notes || ""; document.getElementById("rawNotes").value = d.raw || "";
+      document.getElementById("mTitle").value = d.title || ""; document.getElementById("userNotes").value = d.notes || ""; document.getElementById("rawNotes").value = d.raw || ""; document.getElementById("mParticipants").value = d.people || "";
     }
   }
-  ["mTitle", "userNotes", "rawNotes"].forEach(function (id) { document.getElementById(id).addEventListener("input", saveDraft); });
+  ["mTitle", "userNotes", "rawNotes", "mParticipants"].forEach(function (id) { document.getElementById(id).addEventListener("input", saveDraft); });
 
   // ---- 설정 창 ----
   var settingsModalEl = document.getElementById("settingsModal");

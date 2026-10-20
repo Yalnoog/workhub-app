@@ -323,6 +323,7 @@ footer.hint { color: var(--muted); font-size: 11px; text-align: center; padding-
   .cal-day-list { margin-top: 0; }
   table.sheet { min-width: 440px; }
 }
+#mParticipants { width: 100%; }
 .sx-wrap { display: flex; flex-direction: column; gap: 8px; margin: 4px 0 10px; }
 .sx-box { position: relative; }
 .sx-box input { width: 100%; padding: 11px 40px 11px 38px; font-size: 15px; }
@@ -441,6 +442,7 @@ mark { background: rgba(250, 204, 21, .5); color: inherit; border-radius: 3px; p
           <div class="field"><label for="mDate">일시</label><input id="mDate" type="date"></div>
           <div class="field"><label for="mKind">구분</label><select id="mKind"><option value="meeting">회의</option><option value="memo">메모</option></select></div>
         </div>
+        <div class="field"><label for="mParticipants">참석자 (쉼표로 구분, 선택)</label><input id="mParticipants" type="text" placeholder="예: 김OO, 이OO" maxlength="300" autocomplete="off"></div>
         <div class="field"><label for="userNotes">직접 적은 메모 (회의 중 내가 적는 요점·결정·담당자 등. AI 정리 때 음성보다 우선해 반영됩니다)</label>
           <textarea id="userNotes" placeholder="예: 결정 - 10/12 포장 출하, 담당 김대리 / 견적 회신 대기"></textarea>
         </div>
@@ -1471,7 +1473,7 @@ mark { background: rgba(250, 204, 21, .5); color: inherit; border-radius: 3px; p
     document.getElementById("preview").hidden = true; document.getElementById("saveRow").hidden = true;
     try {
       var userTitle = document.getElementById("mTitle").value.trim();
-      var data = await api("/structure", { method:"POST", body: JSON.stringify({ raw: raw, notes: userNotes, title: userTitle }) });
+      var data = await api("/structure", { method:"POST", body: JSON.stringify({ raw: raw, notes: userNotes, title: userTitle, participants: document.getElementById("mParticipants").value }) });
       lastStructured = data;
       if (userTitle) lastStructured.title = userTitle;   // 직접 입력한 회의명이 AI 제안보다 우선
       renderPreview(lastStructured);
@@ -1501,7 +1503,7 @@ mark { background: rgba(250, 204, 21, .5); color: inherit; border-radius: 3px; p
       for (var i=0;i<toKeep.length;i++) { var a = toKeep[i];
         await api("/tasks", { method:"POST", body: JSON.stringify({ title:a.text, due:a.due||"", priority:"mid", category:(v.project || ("회의: "+meetingTitle)) }) });
       }
-      document.getElementById("mTitle").value = ""; document.getElementById("mDate").value = ""; document.getElementById("rawNotes").value = ""; document.getElementById("userNotes").value = "";
+      document.getElementById("mTitle").value = ""; document.getElementById("mDate").value = ""; document.getElementById("rawNotes").value = ""; document.getElementById("userNotes").value = ""; document.getElementById("mParticipants").value = "";
       document.getElementById("preview").hidden = true; document.getElementById("saveRow").hidden = true;
       document.getElementById("aiStatus").textContent = "";
       document.getElementById("composer").open = isWide();
